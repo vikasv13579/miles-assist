@@ -179,4 +179,3 @@ miles-assist/
 
 ## 📝 License
 
-This project is created for evaluation purposes as part of the Frontend Developer Round 2 Practical Assignment.
