@@ -145,107 +145,107 @@ export default function UserDetailPage({
         {/* LEFT COLUMN */}
         <div className="flex flex-col gap-[24px] w-full lg:w-[712px]">
           {/* Personal Information Card */}
-          <div className="w-full lg:h-[235px] bg-white border border-[#E2E8F0] rounded-[8px] p-[20px] flex flex-col gap-[16px]">
-            <h2 className="text-[16px] leading-[19px] font-bold text-[#0F172A]">Personal Information</h2>
-            <div className="flex flex-col gap-[12px]">
-              <div className="pb-[8px] border-b border-[#E2E8F0] flex items-center justify-between h-[24px]">
-                <span className="text-[#64748B] text-[13px] leading-[16px]">Full Name</span>
-                <span className="text-[#0F172A] text-[13px] leading-[16px] font-semibold">{displayName}</span>
+          <div className="box-border w-full lg:w-[712px] lg:h-[235px] bg-white border border-[#E2E8F0] rounded-[8px] p-[20px] flex flex-col items-start gap-[16px]">
+            <h2 className="w-[164px] h-[19px] text-[16px] leading-[19px] font-bold text-[#0F172A] m-0 shrink-0">Personal Information</h2>
+            <div className="flex flex-col items-start gap-[12px] w-[672px] h-[160px] shrink-0">
+              <div className="box-border pb-[8px] border-b border-[#E2E8F0] flex flex-row items-center justify-between w-[672px] h-[24px] shrink-0">
+                <span className="w-[61px] h-[16px] text-[#64748B] text-[13px] leading-[16px] font-normal shrink-0">Full Name</span>
+                <span className="w-[94px] h-[16px] text-[#0F172A] text-[13px] leading-[16px] font-semibold text-right shrink-0">{displayName}</span>
               </div>
-              <div className="pb-[8px] border-b border-[#E2E8F0] flex items-center justify-between h-[24px]">
-                <span className="text-[#64748B] text-[13px] leading-[16px]">Email Address</span>
-                <span className="text-[#0F172A] text-[13px] leading-[16px] font-semibold">{displayEmail}</span>
+              <div className="box-border pb-[8px] border-b border-[#E2E8F0] flex flex-row items-center justify-between w-[672px] h-[24px] shrink-0">
+                <span className="w-[87px] h-[16px] text-[#64748B] text-[13px] leading-[16px] font-normal shrink-0">Email Address</span>
+                <span className="w-[187px] h-[16px] text-[#0F172A] text-[13px] leading-[16px] font-semibold text-right shrink-0">{displayEmail}</span>
               </div>
-              <div className="pb-[8px] border-b border-[#E2E8F0] flex items-center justify-between h-[24px]">
-                <span className="text-[#64748B] text-[13px] leading-[16px]">Phone Number</span>
-                <span className="text-[#0F172A] text-[13px] leading-[16px] font-semibold">{displayPhone}</span>
+              <div className="box-border pb-[8px] border-b border-[#E2E8F0] flex flex-row items-center justify-between w-[672px] h-[24px] shrink-0">
+                <span className="w-[92px] h-[16px] text-[#64748B] text-[13px] leading-[16px] font-normal shrink-0">Phone Number</span>
+                <span className="w-[81px] h-[16px] text-[#0F172A] text-[13px] leading-[16px] font-semibold text-right shrink-0">{displayPhone}</span>
               </div>
-              <div className="pb-[8px] border-b border-[#E2E8F0] flex items-center justify-between h-[24px]">
-                <span className="text-[#64748B] text-[13px] leading-[16px]">Date of Birth</span>
-                <span className="text-[#0F172A] text-[13px] leading-[16px] font-semibold">{userApi?.birthDate || 'March 14, 1992'}</span>
+              <div className="box-border pb-[8px] border-b border-[#E2E8F0] flex flex-row items-center justify-between w-[672px] h-[24px] shrink-0">
+                <span className="w-[79px] h-[16px] text-[#64748B] text-[13px] leading-[16px] font-normal shrink-0">Date of Birth</span>
+                <span className="w-[96px] h-[16px] text-[#0F172A] text-[13px] leading-[16px] font-semibold text-right shrink-0">{userApi?.birthDate || 'March 14, 1992'}</span>
               </div>
-              <div className="flex items-center justify-between h-[16px]">
-                <span className="text-[#64748B] text-[13px] leading-[16px]">Mailing Address</span>
-                <span className="text-[#0F172A] text-[13px] leading-[16px] font-semibold">{displayAddress}</span>
+              <div className="flex flex-row items-center justify-between w-[672px] h-[16px] shrink-0">
+                <span className="w-[99px] h-[16px] text-[#64748B] text-[13px] leading-[16px] font-normal shrink-0">Mailing Address</span>
+                <span className="w-[261px] h-[16px] text-[#0F172A] text-[13px] leading-[16px] font-semibold text-right shrink-0">{displayAddress}</span>
               </div>
             </div>
           </div>
 
           {/* Account Information Card */}
-          <div className="w-full lg:h-[200px] bg-white border border-[#E2E8F0] rounded-[8px] p-[20px] flex flex-col gap-[16px]">
-            <h2 className="text-[16px] leading-[19px] font-bold text-[#0F172A]">Account Information</h2>
-            <div className="flex flex-col gap-[12px]">
-              <div className="pb-[8px] border-b border-[#E2E8F0] flex items-center justify-between h-[24px]">
-                <span className="text-[#64748B] text-[13px] leading-[16px]">User ID</span>
-                <span className="text-[#0F172A] text-[13px] leading-[16px] font-semibold">#USR-4821</span>
+          <div className="box-border w-full lg:w-[712px] lg:h-[200px] bg-white border border-[#E2E8F0] rounded-[8px] p-[20px] flex flex-col items-start gap-[16px]">
+            <h2 className="w-[161px] h-[19px] text-[16px] leading-[19px] font-bold text-[#0F172A] m-0 shrink-0">Account Information</h2>
+            <div className="flex flex-col items-start gap-[12px] w-[672px] h-[125px] shrink-0">
+              <div className="box-border pb-[8px] border-b border-[#E2E8F0] flex flex-row items-center justify-between w-[672px] h-[24px] shrink-0">
+                <span className="w-[46px] h-[16px] text-[#64748B] text-[13px] leading-[16px] font-normal shrink-0">User ID</span>
+                <span className="w-[73px] h-[16px] text-[#0F172A] text-[13px] leading-[16px] font-semibold text-right shrink-0">#USR-4821</span>
               </div>
-              <div className="pb-[8px] border-b border-[#E2E8F0] flex items-center justify-between h-[24px]">
-                <span className="text-[#64748B] text-[13px] leading-[16px]">Joined Date</span>
-                <span className="text-[#0F172A] text-[13px] leading-[16px] font-semibold">January 12, 2024</span>
+              <div className="box-border pb-[8px] border-b border-[#E2E8F0] flex flex-row items-center justify-between w-[672px] h-[24px] shrink-0">
+                <span className="w-[74px] h-[16px] text-[#64748B] text-[13px] leading-[16px] font-normal shrink-0">Joined Date</span>
+                <span className="w-[109px] h-[16px] text-[#0F172A] text-[13px] leading-[16px] font-semibold text-right shrink-0">January 12, 2024</span>
               </div>
-              <div className="pb-[8px] border-b border-[#E2E8F0] flex items-center justify-between h-[24px]">
-                <span className="text-[#64748B] text-[13px] leading-[16px]">Last Login Activity</span>
-                <span className="text-[#0F172A] text-[13px] leading-[16px] font-semibold">Today, 14:24</span>
+              <div className="box-border pb-[8px] border-b border-[#E2E8F0] flex flex-row items-center justify-between w-[672px] h-[24px] shrink-0">
+                <span className="w-[114px] h-[16px] text-[#64748B] text-[13px] leading-[16px] font-normal shrink-0">Last Login Activity</span>
+                <span className="w-[80px] h-[16px] text-[#0F172A] text-[13px] leading-[16px] font-semibold text-right shrink-0">Today, 14:24</span>
               </div>
-              <div className="flex items-center justify-between h-[17px]">
-                <span className="text-[#64748B] text-[13px] leading-[16px]">Two-Factor Security</span>
-                <span className="h-[17px] flex items-center px-[6px] py-[2px] rounded-[4px] text-[11px] leading-[13px] font-bold bg-[#D1FAE5] text-[#065F46]">
-                  Enabled
-                </span>
+              <div className="flex flex-row items-center justify-between w-[672px] h-[17px] shrink-0">
+                <span className="w-[126px] h-[16px] text-[#64748B] text-[13px] leading-[16px] font-normal shrink-0">Two-Factor Security</span>
+                <div className="flex flex-row items-start px-[6px] py-[2px] w-[56px] h-[17px] bg-[#D1FAE5] rounded-[4px] shrink-0 box-border">
+                  <span className="w-[44px] h-[13px] text-[11px] leading-[13px] font-bold text-[#065F46] shrink-0">
+                    Enabled
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* RIGHT COLUMN: Recent Activity Log */}
-        <div className="w-full lg:w-[400px] lg:h-[379px] bg-white border border-[#E2E8F0] rounded-[8px] p-[20px] flex flex-col gap-[16px]">
-          <h2 className="text-[16px] leading-[19px] font-bold text-[#0F172A]">Recent Activity Log</h2>
-          <div className="flex flex-col gap-[16px] w-full lg:w-[360px] relative">
-            <div className="absolute left-[3px] top-[14px] bottom-[14px] w-[2px] bg-[#E2E8F0] z-0 hidden lg:block" />
-
+        <div className="box-border w-full lg:w-[400px] lg:h-[379px] bg-white border border-[#E2E8F0] rounded-[8px] p-[20px] flex flex-col items-start gap-[16px]">
+          <h2 className="w-[153px] h-[19px] text-[16px] leading-[19px] font-bold text-[#0F172A] m-0 shrink-0">Recent Activity Log</h2>
+          <div className="flex flex-col items-start gap-[16px] w-[360px] h-[304px] shrink-0 relative">
             {/* Log Item 1 */}
-            <div className="relative flex gap-[12px] h-[48px] z-10">
-              <span className="hidden lg:block w-[8px] h-[8px] rounded-[4px] bg-[#4F46E5] shrink-0 mt-[6px]" />
-              <div className="flex flex-col gap-[2px]">
-                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Created booking #BKG-2341</span>
-                <span className="text-[12px] leading-[15px] text-[#475569]">Strategy development session</span>
-                <span className="text-[11px] leading-[13px] text-[#64748B]">2 hours ago</span>
+            <div className="relative flex flex-row items-start gap-[12px] w-[360px] h-[48px] isolate shrink-0">
+              <div className="absolute w-[8px] h-[8px] left-[0px] top-[6px] bg-[#4F46E5] rounded-[4px] z-0" />
+              <div className="flex flex-col items-start pl-[16px] gap-[2px] w-[360px] h-[48px] flex-1 z-10">
+                <span className="w-[180px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] shrink-0">Created booking #BKG-2341</span>
+                <span className="w-[172px] h-[15px] text-[12px] leading-[15px] font-normal text-[#475569] shrink-0">Strategy development session</span>
+                <span className="w-[62px] h-[13px] text-[11px] leading-[13px] font-normal text-[#64748B] shrink-0">2 hours ago</span>
               </div>
             </div>
             {/* Log Item 2 */}
-            <div className="relative flex gap-[12px] h-[48px] z-10">
-              <span className="hidden lg:block w-[8px] h-[8px] rounded-[4px] bg-[#4F46E5] shrink-0 mt-[6px]" />
-              <div className="flex flex-col gap-[2px]">
-                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Changed user password</span>
-                <span className="text-[12px] leading-[15px] text-[#475569]">Initiated self-service reset</span>
-                <span className="text-[11px] leading-[13px] text-[#64748B]">Yesterday, 16:21</span>
+            <div className="relative flex flex-row items-start gap-[12px] w-[360px] h-[48px] isolate shrink-0">
+              <div className="absolute w-[8px] h-[8px] left-[0px] top-[6px] bg-[#4F46E5] rounded-[4px] z-0" />
+              <div className="flex flex-col items-start pl-[16px] gap-[2px] w-[360px] h-[48px] flex-1 z-10">
+                <span className="w-[153px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] shrink-0">Changed user password</span>
+                <span className="w-[149px] h-[15px] text-[12px] leading-[15px] font-normal text-[#475569] shrink-0">Initiated self-service reset</span>
+                <span className="w-[85px] h-[13px] text-[11px] leading-[13px] font-normal text-[#64748B] shrink-0">Yesterday, 16:21</span>
               </div>
             </div>
             {/* Log Item 3 */}
-            <div className="relative flex gap-[12px] h-[48px] z-10">
-              <span className="hidden lg:block w-[8px] h-[8px] rounded-[4px] bg-[#4F46E5] shrink-0 mt-[6px]" />
-              <div className="flex flex-col gap-[2px]">
-                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Logged in from new device</span>
-                <span className="text-[12px] leading-[15px] text-[#475569]">MacOS Chrome, Brooklyn, NY</span>
-                <span className="text-[11px] leading-[13px] text-[#64748B]">Sep 28, 2024</span>
+            <div className="relative flex flex-row items-start gap-[12px] w-[360px] h-[48px] isolate shrink-0">
+              <div className="absolute w-[8px] h-[8px] left-[0px] top-[6px] bg-[#4F46E5] rounded-[4px] z-0" />
+              <div className="flex flex-col items-start pl-[16px] gap-[2px] w-[360px] h-[48px] flex-1 z-10">
+                <span className="w-[170px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] shrink-0">Logged in from new device</span>
+                <span className="w-[169px] h-[15px] text-[12px] leading-[15px] font-normal text-[#475569] shrink-0">MacOS Chrome, Brooklyn, NY</span>
+                <span className="w-[70px] h-[13px] text-[11px] leading-[13px] font-normal text-[#64748B] shrink-0">Sep 28, 2024</span>
               </div>
             </div>
             {/* Log Item 4 */}
-            <div className="relative flex gap-[12px] h-[48px] z-10">
-              <span className="hidden lg:block w-[8px] h-[8px] rounded-[4px] bg-[#4F46E5] shrink-0 mt-[6px]" />
-              <div className="flex flex-col gap-[2px]">
-                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Completed transaction #TXN-7823</span>
-                <span className="text-[12px] leading-[15px] text-[#475569]">Direct invoice payment received</span>
-                <span className="text-[11px] leading-[13px] text-[#64748B]">Sep 27, 2024</span>
+            <div className="relative flex flex-row items-start gap-[12px] w-[360px] h-[48px] isolate shrink-0">
+              <div className="absolute w-[8px] h-[8px] left-[0px] top-[6px] bg-[#4F46E5] rounded-[4px] z-0" />
+              <div className="flex flex-col items-start pl-[16px] gap-[2px] w-[360px] h-[48px] flex-1 z-10">
+                <span className="w-[221px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] shrink-0">Completed transaction #TXN-7823</span>
+                <span className="w-[182px] h-[15px] text-[12px] leading-[15px] font-normal text-[#475569] shrink-0">Direct invoice payment received</span>
+                <span className="w-[69px] h-[13px] text-[11px] leading-[13px] font-normal text-[#64748B] shrink-0">Sep 27, 2024</span>
               </div>
             </div>
             {/* Log Item 5 */}
-            <div className="relative flex gap-[12px] h-[48px] z-10">
-              <span className="hidden lg:block w-[8px] h-[8px] rounded-[4px] bg-[#4F46E5] shrink-0 mt-[6px]" />
-              <div className="flex flex-col gap-[2px]">
-                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Updated profile photo</span>
-                <span className="text-[12px] leading-[15px] text-[#475569]">Refreshed corporate portrait</span>
-                <span className="text-[11px] leading-[13px] text-[#64748B]">Sep 15, 2024</span>
+            <div className="relative flex flex-row items-start gap-[12px] w-[360px] h-[48px] isolate shrink-0">
+              <div className="absolute w-[8px] h-[8px] left-[0px] top-[6px] bg-[#4F46E5] rounded-[4px] z-0" />
+              <div className="flex flex-col items-start pl-[16px] gap-[2px] w-[360px] h-[48px] flex-1 z-10">
+                <span className="w-[138px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] shrink-0">Updated profile photo</span>
+                <span className="w-[163px] h-[15px] text-[12px] leading-[15px] font-normal text-[#475569] shrink-0">Refreshed corporate portrait</span>
+                <span className="w-[68px] h-[13px] text-[11px] leading-[13px] font-normal text-[#64748B] shrink-0">Sep 15, 2024</span>
               </div>
             </div>
           </div>

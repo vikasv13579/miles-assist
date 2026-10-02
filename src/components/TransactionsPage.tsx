@@ -236,24 +236,27 @@ export default function TransactionsPage() {
       )}
 
       {/* 1. BREADCRUMB / HEADER FRAME */}
-      <div className="order-1 w-full lg:w-[1136px] h-[41px] lg:h-[50px] flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-[4px] w-full lg:w-[368px] h-full">
-          <h1 className="text-[18px] leading-[22px] lg:text-[24px] lg:leading-[29px] font-bold text-[#0F172A]">
-            Transactions Ledger
+      <div className="order-1 flex flex-row justify-between items-center p-0 w-full lg:w-[1136px] h-[50px] shrink-0">
+        <div className="flex flex-col items-start p-0 gap-[4px] w-[368px] h-[50px] shrink-0">
+          <h1 className="w-[232px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] m-0 shrink-0">
+            Transaction History
           </h1>
-          <p className="text-[12px] leading-[15px] lg:text-[14px] lg:leading-[17px] text-[#64748B]">
-            <span className="hidden lg:inline">Monitor and manage all corporate financial transactions</span>
-            <span className="lg:hidden">Monitor corporate financial ledger</span>
+          <p className="w-[368px] h-[17px] font-normal text-[14px] leading-[17px] text-[#64748B] font-['Inter'] m-0 shrink-0">
+            Monitor and manage all corporate financial transactions
           </p>
         </div>
 
         {/* Export CSV Button */}
         <button 
           onClick={handleExportCSV}
-          className="hidden lg:flex w-[135px] h-[37px] items-center justify-center gap-[8px] px-[16px] py-[10px] bg-white border border-[#E2E8F0] text-[#475569] rounded-[8px] text-[14px] leading-[17px] font-semibold hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+          className="box-border hidden lg:flex flex-row items-center px-[16px] py-[10px] gap-[8px] w-[135px] h-[37px] bg-white border border-[#E2E8F0] rounded-[8px] shrink-0 cursor-pointer hover:bg-[#F8FAFC] transition-colors"
         >
-          <Download className="w-[16px] h-[16px]" />
-          <span>Export CSV</span>
+          <div className="flex flex-row justify-center items-center p-0 w-[16px] h-[16px] shrink-0">
+            <Download className="w-[16px] h-[16px] text-[#475569]" strokeWidth={2} />
+          </div>
+          <span className="w-[79px] h-[17px] font-semibold text-[14px] leading-[17px] text-[#475569] font-['Inter'] shrink-0 text-left">
+            Export CSV
+          </span>
         </button>
       </div>
 

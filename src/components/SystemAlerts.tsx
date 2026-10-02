@@ -58,9 +58,9 @@ export default function SystemAlerts() {
   });
 
   return (
-    <div className="w-full lg:w-[360px] h-[217px] lg:h-[243px] bg-white border border-[#E2E8F0] rounded-[8px] p-4 lg:p-[20px] flex flex-col gap-3 lg:gap-[16px] shadow-xs shrink-0 overflow-hidden">
+    <div className="w-full lg:w-[360px] h-[217px] lg:h-[243px] bg-white border border-[#E2E8F0] rounded-[8px] p-4 lg:p-[20px] flex flex-col gap-3 lg:gap-[16px] shadow-xs shrink-0 overflow-hidden box-border">
       <div className="flex items-center justify-between">
-        <h3 className="text-[15px] lg:text-[16px] font-bold text-[#0F172A] leading-tight">
+        <h3 className="text-[15px] lg:text-[16px] font-bold text-[#0F172A] leading-[19px]">
           System Alerts
         </h3>
         {searchQuery && (
@@ -70,7 +70,7 @@ export default function SystemAlerts() {
         )}
       </div>
 
-      <div className="flex flex-col gap-3 lg:gap-[16px] overflow-y-auto pr-1">
+      <div className="flex flex-col gap-[12px] overflow-y-auto pr-1">
         {bookingsQuery.isLoading || transactionsQuery.isLoading || usersQuery.isLoading ? (
           <SkeletonRows count={3} />
         ) : bookingsQuery.isError || transactionsQuery.isError || usersQuery.isError ? (
@@ -89,19 +89,19 @@ export default function SystemAlerts() {
           </div>
         ) : (
           filteredAlerts.map((alert) => (
-            <div key={alert.id} className="flex items-start gap-2.5 lg:gap-3">
-              <span
-                className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full mt-1 shrink-0"
+            <div key={alert.id} className="flex flex-row relative h-[48px] w-full isolate">
+              <div
+                className="absolute left-0 top-[6px] w-[8px] h-[8px] rounded-[4px]"
                 style={{ backgroundColor: alert.color }}
               />
-              <div className="flex flex-col">
-                <span className="text-[13px] lg:text-[14px] font-semibold text-[#0F172A] leading-tight">
+              <div className="flex flex-col pl-[16px] gap-[2px] w-full">
+                <span className="font-semibold text-[13px] leading-[16px] text-[#0F172A]">
                   {alert.title}
                 </span>
-                <span className="text-[11px] lg:text-[12px] font-normal text-[#64748B] leading-tight mt-0.5">
+                <span className="font-normal text-[12px] leading-[15px] text-[#475569]">
                   {alert.subtitle}
                 </span>
-                <span className="text-[10px] lg:text-[11px] font-normal text-[#94A3B8] leading-tight mt-0.5">
+                <span className="font-normal text-[11px] leading-[13px] text-[#94A3B8]">
                   {alert.time}
                 </span>
               </div>

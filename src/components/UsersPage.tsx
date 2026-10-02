@@ -30,7 +30,7 @@ interface UserRecord {
   lastActive: string;
 }
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 8;
 
 const defaultUsers: UserRecord[] = [
   {
@@ -522,140 +522,154 @@ export default function UsersPage() {
       </div>
 
       {/* 6. DESKTOP USERS TABLE FRAME */}
-      <div className="hidden lg:flex flex-col w-full lg:w-[1136px] bg-white border border-[#E2E8F0] rounded-[8px] p-3 lg:p-[20px] lg:gap-[16px] shadow-xs overflow-hidden">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 text-[#64748B] gap-3">
-            <span className="text-xs font-semibold text-[#0F172A]">Fetching user directory records...</span>
-            <SkeletonRows className="mt-2 w-full max-w-[500px]" />
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center text-[#64748B] gap-2">
-            <div className="w-12 h-12 rounded-full bg-[#F1F5F9] flex items-center justify-center text-[#94A3B8]">
-              <Search className="w-6 h-6" />
+      <div className="hidden lg:flex flex-col w-full lg:w-[1136px] h-[583px] bg-white border border-[#E2E8F0] rounded-[8px] p-[20px] gap-[16px] box-border shadow-xs overflow-hidden shrink-0">
+        
+        {/* Table Content Frame */}
+        <div className="flex flex-col items-start p-0 w-[1096px] h-[488px]">
+          {/* Header Row */}
+          <div className="flex flex-row items-center p-[12px] gap-[16px] w-[1096px] h-[40px] bg-[#F8FAFC] rounded-[6px] shrink-0">
+            <div className="w-[32px] flex justify-center shrink-0">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === filteredUsers.length && filteredUsers.length > 0}
+                onChange={toggleSelectAll}
+                className="w-[16px] h-[16px] rounded-[4px] border-[#CBD5E1] text-[#4F46E5] focus:ring-[#4F46E5] cursor-pointer m-0"
+              />
             </div>
-            <h4 className="text-[15px] font-bold text-[#0F172A]">No matching users found</h4>
-            <p className="text-[13px] text-[#64748B]">
-              No user records match search query <strong className="text-[#4F46E5]">&quot;{searchQuery}&quot;</strong> or active role/status filters.
-            </p>
-            <button 
-              onClick={() => { setLocalSearch(''); setRoleFilter('All'); setStatusFilter('All'); }}
-              className="mt-2 px-3.5 py-1.5 bg-[#4F46E5] text-white rounded-[6px] text-[12px] font-semibold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-2xs"
-            >
-              Reset Search & Filters
-            </button>
+            <div className="w-[220px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">USER</div>
+            <div className="w-[110px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">ROLE</div>
+            <div className="w-[110px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">STATUS</div>
+            <div className="w-[110px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">JOIN DATE</div>
+            <div className="w-[110px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">LAST ACTIVE</div>
+            <div className="w-[80px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] text-right">ACTIONS</div>
           </div>
-        ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#F8FAFC] rounded-[6px] text-[12px] font-semibold text-[#64748B] h-[40px]">
-                <th className="w-[32px] px-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.length === filteredUsers.length && filteredUsers.length > 0}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 rounded border-[#CBD5E1] text-[#4F46E5] focus:ring-[#4F46E5] cursor-pointer"
-                  />
-                </th>
-                <th className="w-[220px] px-0">USER</th>
-                <th className="w-[110px] px-0">ROLE</th>
-                <th className="w-[110px] px-0">STATUS</th>
-                <th className="w-[110px] px-0">JOIN DATE</th>
-                <th className="w-[110px] px-0">LAST ACTIVE</th>
-                <th className="w-[80px] px-0 text-right">ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F1F5F9] text-[13px]">
+
+          {/* Rows */}
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-16 text-[#64748B] gap-3 w-full h-full">
+              <span className="text-[12px] font-semibold text-[#0F172A]">Fetching user directory records...</span>
+              <SkeletonRows className="mt-2 w-full max-w-[500px]" />
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center text-[#64748B] gap-2 w-full h-full">
+              <div className="w-12 h-12 rounded-full bg-[#F1F5F9] flex items-center justify-center text-[#94A3B8]">
+                <Search className="w-6 h-6" />
+              </div>
+              <h4 className="text-[15px] font-bold text-[#0F172A]">No matching users found</h4>
+              <p className="text-[13px] text-[#64748B]">
+                No user records match search query <strong className="text-[#4F46E5]">&quot;{searchQuery}&quot;</strong> or active role/status filters.
+              </p>
+              <button 
+                onClick={() => { setLocalSearch(''); setRoleFilter('All'); setStatusFilter('All'); }}
+                className="mt-2 px-3.5 py-1.5 bg-[#4F46E5] text-white rounded-[6px] text-[12px] font-semibold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-2xs"
+              >
+                Reset Search & Filters
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col w-[1096px] flex-1 overflow-y-auto">
               {pageUsers.map((user) => {
                 const isChecked = selectedIds.includes(user.id);
                 return (
-                  <tr
+                  <div
                     key={user.id}
-                    className={`hover:bg-[#F8FAFC] transition-colors ${
-                      isChecked ? 'bg-[#EEF2FF]/60 border-l-2 border-l-[#4F46E5]' : ''
+                    className={`box-border flex flex-row items-center p-[12px] gap-[16px] w-[1096px] h-[56px] border-b border-[#E2E8F0] shrink-0 transition-colors ${
+                      isChecked ? 'bg-[#EEF2FF]/60 border-l-2 border-l-[#4F46E5]' : 'hover:bg-[#F8FAFC]'
                     }`}
                   >
-                    <td className="py-3 px-3">
+                    <div className="w-[32px] flex justify-center shrink-0">
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => toggleSelectUser(user.id)}
-                        className="w-4 h-4 rounded border-[#CBD5E1] text-[#4F46E5] focus:ring-[#4F46E5] cursor-pointer"
+                        className="w-[16px] h-[16px] rounded-[4px] border-[#CBD5E1] text-[#4F46E5] focus:ring-[#4F46E5] cursor-pointer m-0"
                       />
-                    </td>
-                    <td className="py-[12px] px-0">
-                      <div className="flex items-center gap-[12px]">
-                        <img
-                          src={user.avatar}
-                          alt={user.name}
-                          className="w-[32px] h-[32px] rounded-[16px] object-cover shrink-0 border border-[#E2E8F0]"
-                        />
-                        <div className="flex flex-col gap-[2px]">
-                          <span className="font-semibold text-[13px] text-[#0F172A] leading-[16px]">
-                            {user.name}
-                          </span>
-                          <span className="text-[11px] text-[#64748B] leading-[13px]">
-                            {user.email}
-                          </span>
-                        </div>
+                    </div>
+                    <div className="w-[220px] h-[32px] flex flex-row items-center gap-[12px] shrink-0">
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-[32px] h-[32px] rounded-[16px] object-cover shrink-0 border border-[#E2E8F0]"
+                      />
+                      <div className="w-[176px] flex flex-col gap-[2px]">
+                        <span className="font-semibold text-[13px] leading-[16px] text-[#0F172A] font-['Inter'] truncate">
+                          {user.name}
+                        </span>
+                        <span className="font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] truncate">
+                          {user.email}
+                        </span>
                       </div>
-                    </td>
-                    <td className="py-[12px] px-0">
-                      <span className="px-[8px] py-[2px] rounded-[4px] text-[11px] font-semibold bg-[#DBEAFE] text-[#1E40AF]">
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="py-[12px] px-0">
-                      <span
-                        className={`inline-block px-[8px] py-[4px] rounded-[12px] text-[11px] font-semibold ${
-                          user.status === 'Active'
-                            ? 'bg-[#D1FAE5] text-[#065F46]'
-                            : user.status === 'Inactive'
-                            ? 'bg-[#FEF3C7] text-[#92400E]'
-                            : 'bg-[#FEE2E2] text-[#EF4444]'
-                        }`}
-                      >
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="py-[12px] px-0 text-[#475569] text-[13px]">{user.joinDate}</td>
-                    <td className="py-[12px] px-0 text-[#475569] text-[13px]">{user.lastActive}</td>
-                    <td className="py-[12px] px-0 text-right">
-                      <div className="flex items-center justify-end gap-[12px]">
-                        <button className="p-0 text-[#475569] hover:text-[#0F172A] cursor-pointer">
-                          <Pencil className="w-[16px] h-[16px]" />
-                        </button>
-                        <button className="p-0 text-[#EF4444] hover:text-[#DC2626] cursor-pointer">
-                          <Trash2 className="w-[16px] h-[16px]" />
-                        </button>
+                    </div>
+                    <div className="w-[110px] flex items-center shrink-0">
+                      <div className={`flex flex-row items-start px-[8px] py-[2px] rounded-[4px] ${
+                        user.role === 'Admin' ? 'bg-[#EEF2FF]' :
+                        user.role === 'Editor' ? 'bg-[#DBEAFE]' : 'bg-[#F8FAFC]'
+                      }`}>
+                        <span className={`font-semibold text-[11px] leading-[13px] font-['Inter'] ${
+                          user.role === 'Admin' ? 'text-[#4F46E5]' :
+                          user.role === 'Editor' ? 'text-[#1E40AF]' : 'text-[#475569]'
+                        }`}>
+                          {user.role}
+                        </span>
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                    <div className="w-[110px] flex items-center shrink-0">
+                      <div className={`flex flex-row items-start px-[8px] py-[4px] rounded-[12px] ${
+                        user.status === 'Active' ? 'bg-[#D1FAE5]' :
+                        user.status === 'Inactive' ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'
+                      }`}>
+                        <span className={`font-semibold text-[11px] leading-[13px] font-['Inter'] ${
+                          user.status === 'Active' ? 'text-[#065F46]' :
+                          user.status === 'Inactive' ? 'text-[#92400E]' : 'text-[#991B1B]'
+                        }`}>
+                          {user.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-[110px] shrink-0 flex items-center">
+                      <span className="font-normal text-[13px] leading-[16px] text-[#475569] font-['Inter']">
+                        {user.joinDate}
+                      </span>
+                    </div>
+                    <div className="w-[110px] shrink-0 flex items-center">
+                      <span className="font-normal text-[13px] leading-[16px] text-[#475569] font-['Inter']">
+                        {user.lastActive}
+                      </span>
+                    </div>
+                    <div className="w-[80px] shrink-0 flex flex-row justify-end items-center gap-[12px]">
+                      <button className="flex items-center justify-center w-[16px] h-[16px] p-0 border-none bg-transparent cursor-pointer hover:opacity-80">
+                        <Pencil className="w-[16px] h-[16px] text-[#475569]" />
+                      </button>
+                      <button className="flex items-center justify-center w-[16px] h-[16px] p-0 border-none bg-transparent cursor-pointer hover:opacity-80">
+                        <Trash2 className="w-[16px] h-[16px] text-[#EF4444]" />
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* Table Footer / Pagination */}
-        <div className="flex items-center justify-between pt-3 border-t border-[#F1F5F9] text-[12px] mt-2">
-          <span className="text-[#64748B]">
-            Showing <span className="font-semibold text-[#0F172A]">{filteredUsers.length ? `${pageStart + 1}-${Math.min(pageStart + PAGE_SIZE, filteredUsers.length)}` : '0'}</span> of{' '}
-            <span className="font-semibold text-[#0F172A]">{filteredUsers.length}</span> results
+        <div className="flex flex-row justify-between items-center p-0 w-[1096px] h-[27px] mt-auto shrink-0">
+          <span className="font-normal text-[13px] leading-[16px] text-[#64748B] font-['Inter']">
+            Showing {filteredUsers.length ? `${pageStart + 1}-${Math.min(pageStart + PAGE_SIZE, filteredUsers.length)}` : '0'} of {filteredUsers.length} results
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-row items-start gap-[8px] h-[27px]">
             <button 
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 bg-white border border-[#E2E8F0] rounded-[6px] text-[#64748B] hover:bg-[#F8FAFC] disabled:opacity-50 disabled:cursor-not-allowed text-[12px]"
+              className="box-border flex flex-row items-center px-[12px] py-[6px] bg-white border border-[#E2E8F0] rounded-[6px] h-[27px] hover:bg-[#F8FAFC] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              Previous
+              <span className="font-semibold text-[12px] leading-[15px] text-[#475569] font-['Inter']">Previous</span>
             </button>
             <button 
               onClick={() => setCurrentPage(Math.min(pageCount, currentPage + 1))}
               disabled={currentPage >= pageCount}
-              className="px-3 py-1 bg-white border border-[#E2E8F0] rounded-[6px] text-[#64748B] hover:bg-[#F8FAFC] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-[12px]"
+              className="box-border flex flex-row items-center px-[12px] py-[6px] bg-white border border-[#E2E8F0] rounded-[6px] h-[27px] hover:bg-[#F8FAFC] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              Next
+              <span className="font-semibold text-[12px] leading-[15px] text-[#475569] font-['Inter']">Next</span>
             </button>
           </div>
         </div>

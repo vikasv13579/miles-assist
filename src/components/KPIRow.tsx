@@ -7,8 +7,7 @@ import { RootState } from '@/lib/store/store';
 import { Users, DollarSign, Calendar, ArrowRightLeft } from 'lucide-react';
 import { fetchBookings, fetchUsers, fetchTransactions } from '@/lib/api';
 import { Skeleton } from '@/components/Skeleton';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 
 export default function KPIRow() {
   const searchQuery = useSelector((state: RootState) => state.ui.searchQuery);
@@ -92,44 +91,50 @@ export default function KPIRow() {
             key={idx}
             className={`
               w-full lg:w-[272px] h-[93px] lg:h-[136px] bg-white border border-[#E2E8F0] rounded-[8px]
-              flex flex-col justify-between shadow-xs transition-all shrink-0
+              p-[12px] lg:p-[20px] flex flex-col justify-between lg:justify-start lg:gap-[12px] shadow-xs transition-all shrink-0
               ${isHighlighted ? 'border-[#6366F1] ring-1 ring-[#EEF2FF]' : 'hover:border-[#CBD5E1]'}
             `}
           >
             {/* Header: Title & Icon */}
-            <CardHeader className="p-[12px] lg:p-[20px] pb-0 lg:pb-0 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-[12px] lg:text-[14px] font-medium text-[#64748B] leading-none truncate">
+            <div className="flex flex-row items-center justify-between w-full lg:h-[32px]">
+              <div className="text-[12px] lg:text-[14px] font-medium text-[#64748B] leading-none lg:leading-[17px] truncate">
                 <span className="lg:hidden">{kpi.mobileTitle}</span>
                 <span className="hidden lg:inline">{kpi.title}</span>
-              </CardTitle>
-              <div className="w-[28px] lg:w-[36px] h-[28px] lg:h-[36px] rounded-full bg-[#EEF2FF] text-[#6366F1] flex items-center justify-center shrink-0">
-                <Icon className="w-3.5 lg:w-4 h-3.5 lg:h-4" />
               </div>
-            </CardHeader>
+              <div className="w-[28px] lg:w-[32px] h-[28px] lg:h-[32px] rounded-full bg-[#EEF2FF] flex items-center justify-center shrink-0">
+                <Icon className="w-3.5 lg:w-4 h-3.5 lg:h-4 text-[#4F46E5] stroke-[2px]" />
+              </div>
+            </div>
 
             {/* Content: Value & Percentage Badge */}
-            <CardContent className="p-[12px] lg:p-[20px] pt-[8px] lg:pt-[12px]">
+            <div className="flex flex-col items-start gap-1 lg:gap-[4px] w-full">
               {kpi.loading ? (
-                <div className="animate-pulse flex flex-col gap-1">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-3 w-20" />
+                <div className="animate-pulse flex flex-col gap-1 w-full mt-2 lg:mt-0">
+                  <Skeleton className="h-6 w-16" />
+                  <Skeleton className="h-4 w-24" />
                 </div>
               ) : (
-                <div className="flex flex-col gap-0.5">
-                  <div className="text-[18px] lg:text-[24px] font-bold text-[#0F172A] leading-tight tracking-tight truncate">
+                <>
+                  <div className="text-[18px] lg:text-[24px] font-bold text-[#0F172A] leading-tight lg:leading-[29px] truncate">
                     {kpi.value}
                   </div>
-                  <div className="flex items-center gap-1 text-[11px] lg:text-[12px] font-medium leading-none">
-                    <Badge variant="secondary" className="bg-[#D1FAE5] text-[#10B981] hover:bg-[#D1FAE5] px-1.5 py-0.5 text-[10px] lg:text-[11px]">
-                      {kpi.change}
-                    </Badge>
-                    <span className="text-[#94A3B8] text-[10px] lg:text-[11px]">
-                      from DummyJSON
+                  <div className="flex flex-row items-center gap-[4px]">
+                    <div className="flex flex-row items-center px-[6px] py-[2px] gap-[2px] bg-[#D1FAE5] rounded-[4px]">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#10B981]">
+                        <line x1="12" y1="19" x2="12" y2="5"></line>
+                        <polyline points="5 12 12 5 19 12"></polyline>
+                      </svg>
+                      <span className="font-bold text-[10px] lg:text-[12px] leading-none lg:leading-[15px] text-[#10B981]">
+                        12.5%
+                      </span>
+                    </div>
+                    <span className="font-normal text-[10px] lg:text-[11px] leading-none lg:leading-[13px] text-[#64748B]">
+                      vs last month
                     </span>
                   </div>
-                </div>
+                </>
               )}
-            </CardContent>
+            </div>
           </Card>
         );
       })}

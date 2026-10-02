@@ -301,29 +301,47 @@ export default function BookingsPage() {
         </div>
       )}
       {/* 1. BREADCRUMB / HEADER FRAME */}
-      <div className="w-[358px] lg:w-[1136px] min-h-[41px] lg:h-[50px] flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-[4px]">
-          <h1 className="text-[18px] lg:text-[24px] font-bold text-[#0F172A] leading-tight lg:leading-none">
-            <span className="lg:hidden">Active Bookings</span>
-            <span className="hidden lg:inline">Bookings Directory</span>
+      <div className="hidden lg:flex flex-row justify-between items-center p-0 w-[1136px] h-[50px] shrink-0">
+        <div className="flex flex-col items-start p-0 gap-[4px] w-[367px] h-[50px] shrink-0">
+          <h1 className="w-[225px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] m-0 shrink-0">
+            Bookings Directory
           </h1>
-          <p className="text-[12px] lg:text-[14px] text-[#64748B] leading-[15px] lg:leading-none">
-            <span className="lg:hidden">Manage and schedule corporate bookings</span>
-            <span className="hidden lg:inline">Manage all service bookings and consultation meetings</span>
+          <p className="w-[367px] h-[17px] font-normal text-[14px] leading-[17px] text-[#64748B] font-['Inter'] m-0 shrink-0">
+            Manage all service bookings and consultation meetings
           </p>
         </div>
-
-        {/* New Booking Button (Desktop) */}
         <button
           onClick={() => {
             setEditingBookingId(null);
             setNewBookingData({ customerName: '', service: 'Business Consultation', dateTime: 'Oct 16, 2024 10:00', duration: '1.5 hrs', amount: '$180.00', status: 'Confirmed' });
             setShowNewBookingModal(true);
           }}
-          className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-[#4F46E5] text-white rounded-[8px] text-[14px] font-semibold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-xs"
+          className="box-border flex flex-row items-center px-[16px] py-[10px] gap-[8px] w-[145px] h-[37px] bg-[#4F46E5] rounded-[8px] shrink-0 cursor-pointer hover:bg-[#4338CA] transition-colors"
+        >
+          <div className="flex flex-row justify-center items-center p-0 w-[16px] h-[16px] shrink-0">
+            <Plus className="w-[16px] h-[16px] text-white" strokeWidth={2} />
+          </div>
+          <span className="w-[89px] h-[17px] font-semibold text-[14px] leading-[17px] text-white font-['Inter'] shrink-0 text-left">
+            New Booking
+          </span>
+        </button>
+      </div>
+
+      {/* 1. BREADCRUMB / HEADER FRAME (Mobile) */}
+      <div className="flex lg:hidden w-[358px] min-h-[41px] items-center justify-between gap-4">
+        <div className="flex flex-col gap-[4px]">
+          <h1 className="text-[18px] font-bold text-[#0F172A] leading-tight">Active Bookings</h1>
+          <p className="text-[12px] text-[#64748B] leading-[15px]">Manage and schedule corporate bookings</p>
+        </div>
+        <button
+          onClick={() => {
+            setEditingBookingId(null);
+            setNewBookingData({ customerName: '', service: 'Business Consultation', dateTime: 'Oct 16, 2024 10:00', duration: '1.5 hrs', amount: '$180.00', status: 'Confirmed' });
+            setShowNewBookingModal(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#4F46E5] text-white rounded-[8px] text-[14px] font-semibold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-xs"
         >
           <Plus className="w-4 h-4" />
-          <span>New Booking</span>
         </button>
       </div>
 
@@ -344,70 +362,106 @@ export default function BookingsPage() {
         </button>
       </div>
 
-      {/* 2. KPI SUMMARY ROW (4 Cards: Total, Active, Completed, Cancelled) */}
-      <div className="w-[358px] lg:w-[1136px] grid grid-cols-2 lg:grid-cols-4 gap-[8px] lg:gap-[16px]">
+      {/* 2. KPI SUMMARY ROW (Desktop) */}
+      <div className="hidden lg:flex flex-row items-start p-0 gap-[16px] w-[1136px] h-[134px] shrink-0">
+        {/* Card 1 */}
+        <div className="box-border flex flex-col items-start p-[20px] gap-[12px] w-[272px] h-[134px] bg-white border border-[#E2E8F0] rounded-[8px] flex-1 shrink-0">
+          <div className="flex flex-row justify-between items-center p-0 w-[232px] h-[32px] shrink-0">
+            <span className="w-[99px] h-[17px] font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Total Bookings</span>
+            <div className="flex flex-row justify-center items-center p-0 w-[32px] h-[32px] bg-[#EEF2FF] rounded-[16px] shrink-0">
+              <Calendar className="w-[16px] h-[16px] text-[#4F46E5]" />
+            </div>
+          </div>
+          <div className="flex flex-col items-start p-0 gap-[4px] w-[232px] h-[50px] shrink-0">
+            <span className="w-[71px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{bookingsList.length.toLocaleString()}</span>
+            <div className="flex flex-row items-center p-0 gap-[4px] w-[127px] h-[17px] shrink-0">
+              <div className="flex flex-row items-start px-[6px] py-[2px] w-[53px] h-[17px] bg-[#D1FAE5] rounded-[4px] shrink-0 box-border">
+                <span className="w-[41px] h-[13px] font-bold text-[11px] leading-[13px] text-[#065F46] font-['Inter'] shrink-0">↑ 8.4%</span>
+              </div>
+              <span className="w-[70px] h-[13px] font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2 */}
+        <div className="box-border flex flex-col items-start p-[20px] gap-[12px] w-[272px] h-[134px] bg-white border border-[#E2E8F0] rounded-[8px] flex-1 shrink-0">
+          <div className="flex flex-row justify-between items-center p-0 w-[232px] h-[32px] shrink-0">
+            <span className="w-[108px] h-[17px] font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Active Bookings</span>
+            <div className="flex flex-row justify-center items-center p-0 w-[32px] h-[32px] bg-[#EEF2FF] rounded-[16px] shrink-0">
+              <Calendar className="w-[16px] h-[16px] text-[#4F46E5]" />
+            </div>
+          </div>
+          <div className="flex flex-col items-start p-0 gap-[4px] w-[232px] h-[50px] shrink-0">
+            <span className="w-[66px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{activeBookingCount.toLocaleString()}</span>
+            <div className="flex flex-row items-center p-0 gap-[4px] w-[124px] h-[17px] shrink-0">
+              <div className="flex flex-row items-start px-[6px] py-[2px] w-[50px] h-[17px] bg-[#FEE2E2] rounded-[4px] shrink-0 box-border">
+                <span className="w-[38px] h-[13px] font-bold text-[11px] leading-[13px] text-[#991B1B] font-['Inter'] shrink-0">↓ 3.1%</span>
+              </div>
+              <span className="w-[70px] h-[13px] font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3 */}
+        <div className="box-border flex flex-col items-start p-[20px] gap-[12px] w-[272px] h-[134px] bg-white border border-[#E2E8F0] rounded-[8px] flex-1 shrink-0">
+          <div className="flex flex-row justify-between items-center p-0 w-[232px] h-[32px] shrink-0">
+            <span className="w-[140px] h-[17px] font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Completed Bookings</span>
+            <div className="flex flex-row justify-center items-center p-0 w-[32px] h-[32px] bg-[#EEF2FF] rounded-[16px] shrink-0">
+              <Calendar className="w-[16px] h-[16px] text-[#4F46E5]" />
+            </div>
+          </div>
+          <div className="flex flex-col items-start p-0 gap-[4px] w-[232px] h-[50px] shrink-0">
+            <span className="w-[70px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{completedBookingCount.toLocaleString()}</span>
+            <div className="flex flex-row items-center p-0 gap-[4px] w-[129px] h-[17px] shrink-0">
+              <div className="flex flex-row items-start px-[6px] py-[2px] w-[55px] h-[17px] bg-[#D1FAE5] rounded-[4px] shrink-0 box-border">
+                <span className="w-[43px] h-[13px] font-bold text-[11px] leading-[13px] text-[#065F46] font-['Inter'] shrink-0">↑ 12.1%</span>
+              </div>
+              <span className="w-[70px] h-[13px] font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4 */}
+        <div className="box-border flex flex-col items-start p-[20px] gap-[12px] w-[272px] h-[134px] bg-white border border-[#E2E8F0] rounded-[8px] flex-1 shrink-0">
+          <div className="flex flex-row justify-between items-center p-0 w-[232px] h-[32px] shrink-0">
+            <span className="w-[133px] h-[17px] font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Cancelled Bookings</span>
+            <div className="flex flex-row justify-center items-center p-0 w-[32px] h-[32px] bg-[#EEF2FF] rounded-[16px] shrink-0">
+              <Calendar className="w-[16px] h-[16px] text-[#4F46E5]" />
+            </div>
+          </div>
+          <div className="flex flex-col items-start p-0 gap-[4px] w-[232px] h-[50px] shrink-0">
+            <span className="w-[44px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{cancelledBookingCount.toLocaleString()}</span>
+            <div className="flex flex-row items-center p-0 gap-[4px] w-[125px] h-[17px] shrink-0">
+              <div className="flex flex-row items-start px-[6px] py-[2px] w-[51px] h-[17px] bg-[#D1FAE5] rounded-[4px] shrink-0 box-border">
+                <span className="w-[39px] h-[13px] font-bold text-[11px] leading-[13px] text-[#065F46] font-['Inter'] shrink-0">↓ 1.4%</span>
+              </div>
+              <span className="w-[70px] h-[13px] font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. KPI SUMMARY ROW (Mobile) */}
+      <div className="flex lg:hidden grid grid-cols-2 gap-[8px] w-[358px]">
         {/* Card 1: Total Bookings */}
-        <div className="bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] lg:p-[20px] flex flex-col lg:justify-between shadow-xs h-[60px] lg:h-[136px] gap-[4px] lg:gap-0 box-border">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] lg:text-[13px] font-normal lg:font-medium text-[#64748B] leading-[13px] lg:leading-normal">Total Bookings</span>
-            <div className="hidden lg:flex w-8 h-8 rounded-full bg-[#EEF2FF] text-[#6366F1] items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[16px] lg:text-[24px] font-bold text-[#0F172A] leading-[19px] lg:leading-tight">{bookingsList.length.toLocaleString()}</span>
-            <span className="hidden lg:flex text-[12px] font-semibold text-[#10B981] items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> Current API dataset
-            </span>
-          </div>
+        <div className="bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] flex flex-col justify-between h-[60px]">
+          <span className="text-[11px] font-normal text-[#64748B] leading-[13px]">Total Bookings</span>
+          <span className="text-[16px] font-bold text-[#0F172A] leading-[19px]">{bookingsList.length.toLocaleString()}</span>
         </div>
-
         {/* Card 2: Active Bookings */}
-        <div className="bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] lg:p-[20px] flex flex-col lg:justify-between shadow-xs h-[60px] lg:h-[136px] gap-[4px] lg:gap-0 box-border">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] lg:text-[13px] font-normal lg:font-medium text-[#64748B] leading-[13px] lg:leading-normal">Active Sessions</span>
-            <div className="hidden lg:flex w-8 h-8 rounded-full bg-[#EEF2FF] text-[#6366F1] items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[16px] lg:text-[24px] font-bold text-[#4F46E5] lg:text-[#0F172A] leading-[19px] lg:leading-tight">{activeBookingCount.toLocaleString()}</span>
-            <span className="hidden lg:flex text-[12px] font-semibold text-[#EF4444] items-center gap-1">
-              <TrendingDown className="w-3 h-3" /> Open or confirmed
-            </span>
-          </div>
+        <div className="bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] flex flex-col justify-between h-[60px]">
+          <span className="text-[11px] font-normal text-[#64748B] leading-[13px]">Active Sessions</span>
+          <span className="text-[16px] font-bold text-[#4F46E5] leading-[19px]">{activeBookingCount.toLocaleString()}</span>
         </div>
-
         {/* Card 3: Completed Bookings */}
-        <div className="bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] lg:p-[20px] flex flex-col lg:justify-between shadow-xs h-[60px] lg:h-[136px] gap-[4px] lg:gap-0 box-border">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] lg:text-[13px] font-normal lg:font-medium text-[#64748B] leading-[13px] lg:leading-normal">Completed</span>
-            <div className="hidden lg:flex w-8 h-8 rounded-full bg-[#EEF2FF] text-[#6366F1] items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[16px] lg:text-[24px] font-bold text-[#065F46] lg:text-[#0F172A] leading-[19px] lg:leading-tight">{completedBookingCount.toLocaleString()}</span>
-            <span className="hidden lg:flex text-[12px] font-semibold text-[#10B981] items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> Marked complete
-            </span>
-          </div>
+        <div className="bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] flex flex-col justify-between h-[60px]">
+          <span className="text-[11px] font-normal text-[#64748B] leading-[13px]">Completed</span>
+          <span className="text-[16px] font-bold text-[#065F46] leading-[19px]">{completedBookingCount.toLocaleString()}</span>
         </div>
-
         {/* Card 4: Cancelled Bookings */}
-        <div className="bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] lg:p-[20px] flex flex-col lg:justify-between shadow-xs h-[60px] lg:h-[136px] gap-[4px] lg:gap-0 box-border">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] lg:text-[13px] font-normal lg:font-medium text-[#64748B] leading-[13px] lg:leading-normal">Cancelled</span>
-            <div className="hidden lg:flex w-8 h-8 rounded-full bg-[#EEF2FF] text-[#6366F1] items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[16px] lg:text-[24px] font-bold text-[#991B1B] lg:text-[#0F172A] leading-[19px] lg:leading-tight">{cancelledBookingCount.toLocaleString()}</span>
-            <span className="hidden lg:flex text-[12px] font-semibold text-[#10B981] items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> Cancelled
-            </span>
-          </div>
+        <div className="bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] flex flex-col justify-between h-[60px]">
+          <span className="text-[11px] font-normal text-[#64748B] leading-[13px]">Cancelled</span>
+          <span className="text-[16px] font-bold text-[#991B1B] leading-[19px]">{cancelledBookingCount.toLocaleString()}</span>
         </div>
       </div>
 
@@ -425,29 +479,35 @@ export default function BookingsPage() {
       </button>
 
       {/* 3. DESKTOP SEARCH & FILTER FRAME */}
-      <div className="hidden lg:flex w-[1136px] bg-white border border-[#E2E8F0] rounded-[8px] p-[16px] flex-row items-center justify-between gap-3 shadow-xs">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative w-[260px] h-[36px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+      <div className="box-border hidden lg:flex flex-row justify-between items-center p-[16px] w-[1136px] h-[64px] bg-white border border-[#E2E8F0] rounded-[8px] shrink-0">
+        <div className="flex flex-row items-center p-0 gap-[12px] w-[735px] h-[32px] shrink-0">
+          <div className="box-border flex flex-row items-center px-[12px] py-[8px] gap-[8px] w-[240px] h-[32px] border border-[#E2E8F0] rounded-[8px] shrink-0">
+            <Search className="w-[16px] h-[16px] text-[#94A3B8] shrink-0" />
             <input
               type="text"
               placeholder="Search bookings by ID or client..."
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-full h-[36px] pl-9 pr-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#4F46E5] transition-all"
+              className="w-[202px] h-[16px] font-normal text-[13px] leading-[16px] text-[#0F172A] placeholder-[#94A3B8] font-['Inter'] bg-transparent focus:outline-none shrink-0"
             />
           </div>
 
-          <div className="hidden lg:flex items-center gap-2">
-            <select className="h-[36px] px-3 bg-white border border-[#E2E8F0] rounded-[8px] text-[13px] font-medium text-[#475569] focus:outline-none cursor-pointer">
+          <div className="box-border flex flex-row items-center px-[12px] py-[8px] gap-[6px] w-[204px] h-[32px] border border-[#E2E8F0] rounded-[8px] shrink-0 relative bg-white overflow-hidden">
+            <select className="w-full h-full absolute inset-0 opacity-0 cursor-pointer text-[13px] font-['Inter']">
               <option>Date Range: Last 30 Days</option>
               <option>Date Range: Last 7 Days</option>
             </select>
+            <span className="w-[160px] h-[16px] font-medium text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0 pointer-events-none truncate">Date Range: Last 30 Days</span>
+            <div className="flex flex-row justify-center items-center p-0 w-[14px] h-[14px] shrink-0 pointer-events-none">
+              <TrendingDown className="w-[14px] h-[14px] text-[#64748B]" />
+            </div>
+          </div>
 
+          <div className="box-border flex flex-row items-center px-[12px] py-[8px] gap-[6px] w-[107px] h-[32px] border border-[#E2E8F0] rounded-[8px] shrink-0 relative bg-white overflow-hidden">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-[36px] px-3 bg-white border border-[#E2E8F0] rounded-[8px] text-[13px] font-medium text-[#475569] focus:outline-none cursor-pointer"
+              className="w-full h-full absolute inset-0 opacity-0 cursor-pointer text-[13px] font-['Inter']"
             >
               <option value="All">Status: All</option>
               <option value="Confirmed">Confirmed</option>
@@ -455,31 +515,45 @@ export default function BookingsPage() {
               <option value="Pending">Pending</option>
               <option value="Cancelled">Cancelled</option>
             </select>
+            <span className="w-[63px] h-[16px] font-medium text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0 pointer-events-none truncate">{statusFilter === 'All' ? 'Status: All' : statusFilter}</span>
+            <div className="flex flex-row justify-center items-center p-0 w-[14px] h-[14px] shrink-0 pointer-events-none">
+              <TrendingDown className="w-[14px] h-[14px] text-[#64748B]" />
+            </div>
+          </div>
 
+          <div className="box-border flex flex-row items-center px-[12px] py-[8px] gap-[6px] w-[148px] h-[32px] border border-[#E2E8F0] rounded-[8px] shrink-0 relative bg-white overflow-hidden">
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
-              className="h-[36px] px-3 bg-white border border-[#E2E8F0] rounded-[8px] text-[13px] font-medium text-[#475569] focus:outline-none cursor-pointer"
+              className="w-full h-full absolute inset-0 opacity-0 cursor-pointer text-[13px] font-['Inter']"
             >
               <option value="All">Service Type: All</option>
               <option value="Business Consultation">Business Consultation</option>
               <option value="Technical Support">Technical Support</option>
               <option value="Executive Coaching">Executive Coaching</option>
             </select>
+            <span className="w-[104px] h-[16px] font-medium text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0 pointer-events-none truncate">{serviceFilter === 'All' ? 'Service: All' : serviceFilter}</span>
+            <div className="flex flex-row justify-center items-center p-0 w-[14px] h-[14px] shrink-0 pointer-events-none">
+              <TrendingDown className="w-[14px] h-[14px] text-[#64748B]" />
+            </div>
           </div>
         </div>
 
         <button
           onClick={handleExportCSV}
-          className="flex items-center gap-2 px-3.5 py-2 bg-white border border-[#E2E8F0] text-[#0F172A] rounded-[8px] text-[13px] font-semibold hover:bg-[#F8FAFC] transition-colors cursor-pointer shadow-xs"
+          className="box-border flex flex-row items-center px-[12px] py-[8px] gap-[6px] w-[111px] h-[32px] border border-[#E2E8F0] rounded-[8px] shrink-0 cursor-pointer hover:bg-[#F8FAFC] transition-colors"
         >
-          <Download className="w-4 h-4 text-[#64748B]" />
-          <span>Export List</span>
+          <div className="flex flex-row justify-center items-center p-0 w-[14px] h-[14px] shrink-0">
+            <Download className="w-[14px] h-[14px] text-[#475569]" strokeWidth={2} />
+          </div>
+          <span className="w-[67px] h-[16px] font-medium text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0 text-left">
+            Export List
+          </span>
         </button>
       </div>
 
       {/* 4. BOOKINGS TABLE FRAME */}
-      <div className="w-[358px] lg:w-[1136px] bg-transparent lg:bg-white lg:border lg:border-[#E2E8F0] lg:rounded-[8px] lg:p-[12px] lg:shadow-xs flex flex-col justify-between">
+      <div className="w-[358px] lg:hidden bg-transparent flex flex-col justify-between">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16 text-[#64748B] gap-3">
             <span className="text-xs font-semibold text-[#0F172A]">Fetching bookings directory...</span>
@@ -502,117 +576,101 @@ export default function BookingsPage() {
             </button>
           </div>
         ) : (
-          <>
-            {/* Desktop Table View */}
-            <div className="hidden lg:block w-full overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[800px]">
-                <thead>
-                  <tr className="border-b border-[#F1F5F9] text-[11px] font-bold text-[#94A3B8] tracking-wider uppercase">
-                    <th className="pb-3 pl-3 font-bold">BOOKING ID</th>
-                    <th className="pb-3 font-bold">CUSTOMER</th>
-                    <th className="pb-3 font-bold">SERVICE</th>
-                    <th className="pb-3 font-bold">DATE & TIME</th>
-                    <th className="pb-3 font-bold">DURATION</th>
-                    <th className="pb-3 font-bold">STATUS</th>
-                    <th className="pb-3 font-bold">AMOUNT</th>
-                    <th className="pb-3 font-bold text-center">ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F1F5F9] text-[13px]">
-                  {pageBookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-[#F8FAFC] transition-colors">
-                      <td className="py-3.5 pl-3 font-bold text-[#0F172A]">{b.id}</td>
-                      <td className="py-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <img
-                            src={b.avatar}
-                            alt={b.customerName}
-                            className="w-7 h-7 rounded-full object-cover shrink-0 border border-[#E2E8F0]"
-                          />
-                          <span className="font-semibold text-[#0F172A] truncate">
-                            {b.customerName}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 text-[#0F172A] font-medium">{b.service}</td>
-                      <td className="py-3.5 text-[#64748B] text-[12px]">{b.dateTime}</td>
-                      <td className="py-3.5 text-[#64748B] text-[12px]">{b.duration}</td>
-                      <td className="py-3.5">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${b.status === 'Confirmed' || b.status === 'Completed'
-                              ? 'bg-[#D1FAE5] text-[#10B981]'
-                              : b.status === 'Pending'
-                                ? 'bg-[#FEF3C7] text-[#D97706]'
-                                : 'bg-[#FEE2E2] text-[#EF4444]'
-                            }`}
-                        >
-                          {b.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 font-bold text-[#0F172A]">{b.amount}</td>
-                      <td className="py-3.5 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => setSelectedBookingId(b.id)}
-                            className="p-1 text-[#64748B] hover:text-[#4F46E5] hover:bg-[#EEF2FF] rounded transition-colors cursor-pointer"
-                            title="View details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleEditBooking(b)} className="p-1 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] rounded transition-colors cursor-pointer" title="Edit booking">
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="flex lg:hidden flex-col gap-[10px] w-full">
-              {pageBookings.map((b) => (
-                <div key={b.id} className="box-border w-[358px] h-[127px] bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] flex flex-col gap-[10px]">
-                  {/* Top Row */}
-                  <div className="w-[334px] h-[19px] flex items-center justify-between">
-                    <span className="text-[13px] leading-[16px] font-bold text-[#0F172A]">{b.id}</span>
-                    <div className={`flex items-start px-[8px] py-[3px] rounded-[12px] ${b.status === 'Confirmed' || b.status === 'Completed' ? 'bg-[#D1FAE5]' : b.status === 'Pending' ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'
+          <div className="flex flex-col gap-[10px] w-full">
+            {pageBookings.map((b) => (
+              <div key={b.id} className="box-border w-[358px] h-[127px] bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] flex flex-col gap-[10px]">
+                {/* Top Row */}
+                <div className="w-[334px] h-[19px] flex items-center justify-between">
+                  <span className="text-[13px] leading-[16px] font-bold text-[#0F172A]">{b.id}</span>
+                  <div className={`flex items-start px-[8px] py-[3px] rounded-[12px] ${b.status === 'Confirmed' || b.status === 'Completed' ? 'bg-[#D1FAE5]' : b.status === 'Pending' ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'
+                    }`}>
+                    <span className={`text-[11px] leading-[13px] font-semibold ${b.status === 'Confirmed' || b.status === 'Completed' ? 'text-[#065F46]' : b.status === 'Pending' ? 'text-[#92400E]' : 'text-[#991B1B]'
                       }`}>
-                      <span className={`text-[11px] leading-[13px] font-semibold ${b.status === 'Confirmed' || b.status === 'Completed' ? 'text-[#065F46]' : b.status === 'Pending' ? 'text-[#92400E]' : 'text-[#991B1B]'
-                        }`}>
-                        {b.status === 'Confirmed' ? 'Active' : b.status}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Divider */}
-                  <div className="w-[334px] h-0 border-t border-[#E2E8F0]" />
-                  {/* Middle Row */}
-                  <div className="w-[334px] h-[30px] flex items-center justify-between">
-                    <div className="flex items-center gap-[8px]">
-                      <img src={b.avatar} alt={b.customerName} className="w-[24px] h-[24px] rounded-[12px] object-cover" />
-                      <div className="flex flex-col gap-[1px]">
-                        <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">{b.customerName}</span>
-                        <span className="text-[11px] leading-[13px] font-normal text-[#64748B]">{b.service}</span>
-                      </div>
-                    </div>
-                    <span className="text-[13px] leading-[16px] font-bold text-[#4F46E5]">{b.amount}</span>
-                  </div>
-                  {/* Bottom Row */}
-                  <div className="w-[334px] h-[24px] flex items-center justify-between mt-[4px]">
-                    <span className="text-[10px] leading-[12px] font-normal text-[#64748B]">{b.dateTime}</span>
-                    <button onClick={() => setSelectedBookingId(b.id)} className="w-[20px] h-[20px] bg-[#F8FAFC] rounded-[4px] flex items-center justify-center cursor-pointer hover:bg-[#F1F5F9]">
-                      <ArrowLeft className="w-[12px] h-[12px] text-[#475569] rotate-180" />
-                    </button>
+                      {b.status === 'Confirmed' ? 'Active' : b.status}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </>
+                {/* Divider */}
+                <div className="w-[334px] h-0 border-t border-[#E2E8F0]" />
+                {/* Middle Row */}
+                <div className="w-[334px] h-[30px] flex items-center justify-between">
+                  <div className="flex items-center gap-[8px]">
+                    <img src={b.avatar} alt={b.customerName} className="w-[24px] h-[24px] rounded-[12px] object-cover" />
+                    <div className="flex flex-col gap-[1px]">
+                      <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">{b.customerName}</span>
+                      <span className="text-[11px] leading-[13px] font-normal text-[#64748B]">{b.service}</span>
+                    </div>
+                  </div>
+                  <span className="text-[13px] leading-[16px] font-bold text-[#4F46E5]">{b.amount}</span>
+                </div>
+                {/* Bottom Row */}
+                <div className="w-[334px] h-[24px] flex items-center justify-between mt-[4px]">
+                  <span className="text-[10px] leading-[12px] font-normal text-[#64748B]">{b.dateTime}</span>
+                  <button onClick={() => setSelectedBookingId(b.id)} className="w-[20px] h-[20px] bg-[#F8FAFC] rounded-[4px] flex items-center justify-center cursor-pointer hover:bg-[#F1F5F9]">
+                    <ArrowLeft className="w-[12px] h-[12px] text-[#475569] rotate-180" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
+      </div>
 
+      <div className="box-border hidden lg:flex flex-col items-start p-[20px] gap-[16px] w-[1136px] h-[518px] bg-white border border-[#E2E8F0] rounded-[8px] shrink-0">
+        <div className="flex flex-col items-start p-0 w-[1096px] h-[423px] shrink-0">
+          <div className="box-border flex flex-row items-center p-[12px] gap-[16px] w-[1096px] h-[39px] bg-[#F8FAFC] rounded-[6px] shrink-0">
+            <div className="w-[110px] h-[15px] shrink-0"><span className="w-[71px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">BOOKING ID</span></div>
+            <div className="w-[180px] h-[15px] shrink-0"><span className="w-[69px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">CUSTOMER</span></div>
+            <div className="w-[150px] h-[15px] shrink-0"><span className="w-[51px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">SERVICE</span></div>
+            <div className="w-[160px] h-[15px] shrink-0"><span className="w-[75px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">DATE & TIME</span></div>
+            <div className="w-[100px] h-[15px] shrink-0"><span className="w-[63px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">DURATION</span></div>
+            <div className="w-[100px] h-[15px] shrink-0"><span className="w-[47px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">STATUS</span></div>
+            <div className="w-[100px] h-[15px] shrink-0"><span className="w-[55px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">AMOUNT</span></div>
+            <div className="flex flex-row justify-end items-start p-0 w-[80px] h-[15px] shrink-0"><span className="w-[55px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0 text-right">ACTIONS</span></div>
+          </div>
+          
+          <div className="flex flex-col w-[1096px] h-auto flex-grow overflow-y-auto">
+            {pageBookings.map((b) => (
+              <div key={b.id} className="box-border flex flex-row items-center p-[12px] gap-[16px] w-[1096px] h-[48px] border-b border-[#E2E8F0] shrink-0 hover:bg-[#F8FAFC] transition-colors">
+                <div className="flex flex-row items-start p-0 w-[110px] h-[16px] shrink-0">
+                  <span className="w-[73px] h-[16px] font-semibold text-[13px] leading-[16px] text-[#0F172A] font-['Inter'] shrink-0">{b.id}</span>
+                </div>
+                <div className="flex flex-row items-center p-0 gap-[8px] w-[180px] h-[24px] shrink-0">
+                  <img src={b.avatar} alt={b.customerName} className="w-[24px] h-[24px] rounded-[12px] object-cover shrink-0" />
+                  <span className="w-[148px] h-[16px] font-medium text-[13px] leading-[16px] text-[#0F172A] font-['Inter'] shrink-0 truncate">{b.customerName}</span>
+                </div>
+                <div className="flex flex-row items-start p-0 w-[150px] h-[16px] shrink-0">
+                  <span className="w-[136px] h-[16px] font-normal text-[13px] leading-[16px] text-[#0F172A] font-['Inter'] shrink-0 truncate">{b.service}</span>
+                </div>
+                <div className="flex flex-row items-start p-0 w-[160px] h-[16px] shrink-0">
+                  <span className="w-[117px] h-[16px] font-normal text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0">{b.dateTime}</span>
+                </div>
+                <div className="flex flex-row items-start p-0 w-[100px] h-[16px] shrink-0">
+                  <span className="w-[40px] h-[16px] font-normal text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0">{b.duration}</span>
+                </div>
+                <div className="flex flex-row items-start p-0 w-[100px] h-[21px] shrink-0">
+                  <div className={`flex flex-row items-start px-[8px] py-[4px] rounded-[12px] shrink-0 ${b.status === 'Confirmed' || b.status === 'Completed' ? 'bg-[#D1FAE5]' : b.status === 'Pending' ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'}`}>
+                    <span className={`h-[13px] font-semibold text-[11px] leading-[13px] font-['Inter'] shrink-0 ${b.status === 'Confirmed' || b.status === 'Completed' ? 'text-[#065F46]' : b.status === 'Pending' ? 'text-[#92400E]' : 'text-[#991B1B]'}`}>{b.status}</span>
+                  </div>
+                </div>
+                <div className="flex flex-row items-start p-0 w-[100px] h-[16px] shrink-0">
+                  <span className="w-[53px] h-[16px] font-semibold text-[13px] leading-[16px] text-[#0F172A] font-['Inter'] shrink-0">{b.amount}</span>
+                </div>
+                <div className="flex flex-row justify-end items-start p-0 gap-[12px] w-[80px] h-[16px] shrink-0">
+                  <button onClick={() => setSelectedBookingId(b.id)} className="flex flex-row justify-center items-center p-0 w-[16px] h-[16px] bg-transparent border-none cursor-pointer shrink-0">
+                    <Eye className="w-[16px] h-[16px] text-[#475569] hover:text-[#0F172A] transition-colors" strokeWidth={2} />
+                  </button>
+                  <button onClick={() => handleEditBooking(b)} className="flex flex-row justify-center items-center p-0 w-[16px] h-[16px] bg-transparent border-none cursor-pointer shrink-0">
+                    <Pencil className="w-[16px] h-[16px] text-[#475569] hover:text-[#0F172A] transition-colors" strokeWidth={2} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
         {/* Table Footer / Pagination */}
-        <div className="flex items-center justify-between pt-3 border-t border-[#F1F5F9] text-[12px] mt-2">
+        <div className="flex items-center justify-between pt-[12px] border-t border-[#F1F5F9] text-[12px] w-full shrink-0">
           <span className="text-[#64748B]">
             Showing <span className="font-semibold text-[#0F172A]">{filteredBookings.length ? `${pageStart + 1}-${Math.min(pageStart + PAGE_SIZE, filteredBookings.length)}` : '0'}</span> of{' '}
             <span className="font-semibold text-[#0F172A]">{filteredBookings.length}</span> results
