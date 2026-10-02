@@ -1,5 +1,7 @@
 # Production-Ready Admin Dashboard
 
+🚀 **Live Demo:** [https://miles-assist.vercel.app/](https://miles-assist.vercel.app/)
+
 A responsive, high-performance Admin Dashboard web application built with **Next.js (App Router)**, **TypeScript**, **TanStack Query**, **Redux Toolkit**, and **Tailwind CSS**.
 
 ---
@@ -89,11 +91,16 @@ This application connects to free, public REST APIs from **DummyJSON** to popula
 
 ## 🎨 UI/UX & Responsive Design
 
-- **Pixel-Accurate Aesthetics**: Sleek dark sidebar (`#1E293B`), glassmorphism accents, curated slate color palette, sharp borders, and subtle shadows.
+- **Pixel-Accurate Aesthetics (Figma-to-Code)**: The application features strict adherence to provided Figma design layouts with customized exact pixel measurements, meticulously matched typography (Inter font), precise flex alignments, absolute positioning (where specified), and curated exact color codes (`#0F172A`, `#1E293B`, `#64748B`, `#4F46E5`).
+  - **Pixel-Perfect Pages Configured**:
+    - `UsersPage`: Strict table layouts with custom paddings and actions.
+    - `TransactionsPage`: Absolute container bounds (e.g. `1136x50` headers) and export elements.
+    - `BookingsPage`: Perfected 4-card KPI summary row, filtering frames (`1136x64`), and data grids matching exact specifications.
+    - `UserDetailPage`: Exact component matching including the `Profile Hero Banner` layout, strict `Middle Grid` sizing (712x235px), and absolute `dot-indicator` positioning on the Recent Activity log.
+    - `TopBar`: Pixel-accurate header structure featuring exactly calculated search boundaries (240x32px) and notification container sizing.
 - **Mobile Responsiveness**:
-  - **Desktop**: Full persistent sidebar with multi-column grid dashboard layout.
-  - **Mobile/Tablet**: Collapsible slide-out navigation drawer with dark backdrop overlay and a sticky mobile bottom navigation bar (`MobileBottomNav`).
-  - Tables and cards automatically adapt with horizontal scrolling and responsive stack layouts.
+  - **Desktop**: Full persistent sidebar with multi-column grid dashboard layout locked into rigid, pixel-perfect container boundaries (`1136px` content bounds).
+  - **Mobile/Tablet**: Collapsible slide-out navigation drawer with dark backdrop overlay and a fluid, flexible stack layout designed gracefully around the rigid desktop structures.
 - **Real-World UI States Handled**:
   - ⏳ **Loading State**: Animated skeleton loaders and spinner indicators during network requests.
   - ❌ **Error State**: Graceful error alert banners with explicit **"Try Again"** refetch buttons.
@@ -179,3 +186,17 @@ miles-assist/
 
 ## 📝 License
 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+Feel free to check [issues page](https://github.com/your-username/miles-assist/issues).
+
+## 🧑‍💻 Author
+
+**Your Name**
+- GitHub: [@your-username](https://github.com/your-username)
+- LinkedIn: [Your Name](https://linkedin.com/in/your-username)

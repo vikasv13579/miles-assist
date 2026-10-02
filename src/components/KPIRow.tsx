@@ -90,8 +90,8 @@ export default function KPIRow() {
           <Card
             key={idx}
             className={`
-              w-full lg:w-[272px] h-[93px] lg:h-[136px] bg-white border border-[#E2E8F0] rounded-[8px]
-              p-[12px] lg:p-[20px] flex flex-col justify-between lg:justify-start lg:gap-[12px] shadow-xs transition-all shrink-0
+              w-full lg:w-[272px] h-auto min-h-[93px] lg:h-[136px] bg-white border border-[#E2E8F0] rounded-[8px]
+              p-[12px] lg:p-[20px] flex flex-col justify-start gap-[8px] lg:gap-[12px] shadow-xs transition-all shrink-0
               ${isHighlighted ? 'border-[#6366F1] ring-1 ring-[#EEF2FF]' : 'hover:border-[#CBD5E1]'}
             `}
           >
