@@ -1,6 +1,8 @@
 # Production-Ready Admin Dashboard
 
 🚀 **Live Demo:** [https://miles-assist.vercel.app/](https://miles-assist.vercel.app/)
+Email: admin@example.com
+Password: Admin@123
 
 A responsive, high-performance Admin Dashboard web application built with **Next.js (App Router)**, **TypeScript**, **TanStack Query**, **Redux Toolkit**, and **Tailwind CSS**.
 
