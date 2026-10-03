@@ -128,13 +128,40 @@ This application connects to free, public REST APIs from **DummyJSON** to popula
    npm install
    ```
 
-3. **Run the development server**:
+3. **Configure and start the backend**:
+   The login page needs the backend API. Configure its database and JWT secret first:
+   ```bash
+   cd backend
+   cp .env.example .env
+   ```
+   Set `DATABASE_URL` to your PostgreSQL database and set `PORT=3001` so the API does not conflict with the frontend on port `3000`. Keep `CORS_ORIGIN=http://localhost:3000` for local development.
+
+   Install backend dependencies, apply the database migrations, create the development admin account, and start the API:
+   ```bash
+   npm install
+   npx prisma migrate dev
+   npm run prisma:seed
+   npm run start:dev
+   ```
+
+4. **Configure the frontend API URL**:
+   In the repository root, create `.env.local` with:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:3001
+   ```
+   If you change the backend port, use that same port in `NEXT_PUBLIC_API_URL`. Restart the frontend after changing this value.
+
+5. **Run the frontend** in a second terminal, from the repository root:
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Open [http://localhost:3000/login](http://localhost:3000/login) and sign in with the development seed account:
+   - **Email**: `admin@example.com`
+   - **Password**: `Admin@123`
 
-4. **Build for production**:
+   These are local development credentials only. Do not use them in production; provision a unique administrator password and protect the production API configuration.
+
+6. **Build for production**:
    ```bash
    npm run build
    npm start
