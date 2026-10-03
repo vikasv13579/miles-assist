@@ -12,9 +12,13 @@ interface LoginResponse {
 type ApiMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
 function getApiBaseUrl() {
-  const apiBaseUrl = env('NEXT_PUBLIC_API_URL')?.trim().replace(/\/+$/, '');
+  const apiBaseUrl = (
+    process.env.NEXT_PUBLIC_API_URL || env('NEXT_PUBLIC_API_URL')
+  )?.trim().replace(/\/+$/, '');
   if (!apiBaseUrl) {
-    throw new Error('NEXT_PUBLIC_API_URL is not configured.');
+    throw new Error(
+      'Sign-in is unavailable because the API endpoint is not configured. Set NEXT_PUBLIC_API_URL and restart the frontend.',
+    );
   }
   return apiBaseUrl;
 }
@@ -35,11 +39,19 @@ async function request<T>(
     }
   }
 
-  const response = await fetch(url, {
-    method,
-    headers,
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers,
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error('Could not connect to the sign-in service. Check your connection and try again.');
+    }
+    throw error;
+  }
 
   const responseBody: unknown = await response.json().catch(() => null);
 
