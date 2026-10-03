@@ -149,7 +149,7 @@ All endpoints except login require authentication. See the backend Swagger page 
    ```
    If you change the backend port, use that same port in `NEXT_PUBLIC_API_URL`. Restart the frontend after changing this value.
 
-   In Vercel, set `NEXT_PUBLIC_API_URL` in the **frontend** project's environment variables for each environment you use (Production and/or Preview), then redeploy. Set the backend project's `CORS_ORIGIN` to the exact deployed frontend origin and redeploy the backend.
+   In Vercel, set `NEXT_PUBLIC_API_URL` in the **frontend** project's environment variables for each environment you use (Production and/or Preview), then redeploy. The backend allows `https://miles-assist.vercel.app` and local development by default. For other frontend domains or Preview deployments, add their exact origins to the backend project's comma-separated `CORS_ORIGIN` value, then redeploy the backend.
 
 5. **Run the frontend** in a second terminal, from the repository root:
    ```bash
