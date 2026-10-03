@@ -48,7 +48,9 @@ async function request<T>(
     });
   } catch (error) {
     if (error instanceof TypeError) {
-      throw new Error('Could not connect to the sign-in service. Check your connection and try again.');
+      throw new Error(
+        "Could not reach the sign-in service. Check your connection and confirm the backend CORS_ORIGIN includes this frontend's deployed URL.",
+      );
     }
     throw error;
   }
@@ -56,14 +58,17 @@ async function request<T>(
   const responseBody: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const message =
-      typeof responseBody === 'object' &&
-      responseBody !== null &&
-      'message' in responseBody &&
-      typeof responseBody.message === 'string'
+    const errorMessage =
+      typeof responseBody === 'object' && responseBody !== null && 'message' in responseBody
         ? responseBody.message
-        : `API request failed (${response.status}).`;
-    throw new Error(message);
+        : undefined;
+    const message =
+      typeof errorMessage === 'string'
+        ? errorMessage
+        : Array.isArray(errorMessage) && errorMessage.every((item) => typeof item === 'string')
+          ? errorMessage.join(' ')
+          : undefined;
+    throw new Error(message || `API request failed (${response.status}).`);
   }
 
   if (responseBody === null) {
