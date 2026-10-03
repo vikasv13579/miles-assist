@@ -11,13 +11,17 @@ interface LoginResponse {
 
 type ApiMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
+const DEFAULT_API_BASE_URL = 'https://miles-assist-backend.vercel.app';
+
 function getApiBaseUrl() {
-  const apiBaseUrl = (
-    process.env.NEXT_PUBLIC_API_URL || env('NEXT_PUBLIC_API_URL')
-  )?.trim().replace(/\/+$/, '');
+  const configuredApiBaseUrl = (
+    process.env.NEXT_PUBLIC_API_URL ||
+    env('NEXT_PUBLIC_API_URL')
+  )?.trim();
+  const apiBaseUrl = (configuredApiBaseUrl || DEFAULT_API_BASE_URL).replace(/\/+$/, '');
   if (!apiBaseUrl) {
     throw new Error(
-      'The API URL is not configured for this deployment. In your Vercel frontend project, set NEXT_PUBLIC_API_URL for this environment (Production or Preview), then redeploy. No login request was sent.',
+      'The API URL is invalid. Set NEXT_PUBLIC_API_URL to a valid backend URL. No API request was sent.',
     );
   }
   return apiBaseUrl;
