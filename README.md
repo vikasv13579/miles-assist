@@ -143,13 +143,13 @@ All endpoints except login require authentication. See the backend Swagger page 
    ```
 
 4. **Configure the frontend API URL**:
-   In the repository root, create `.env.local` with:
+   The frontend uses the production API at `https://miles-assist-backend.vercel.app` by default. To use your local backend, create `.env.local` in the repository root:
    ```env
    NEXT_PUBLIC_API_URL=http://localhost:3001
    ```
-   If you change the backend port, use that same port in `NEXT_PUBLIC_API_URL`. Restart the frontend after changing this value.
+   Set `NEXT_PUBLIC_API_URL` to override the default live API URL. Restart the frontend after changing this value.
 
-   In Vercel, set `NEXT_PUBLIC_API_URL` in the **frontend** project's environment variables for each environment you use (Production and/or Preview), then redeploy. The backend allows `https://miles-assist.vercel.app` and local development by default. For other frontend domains or Preview deployments, add their exact origins to the backend project's comma-separated `CORS_ORIGIN` value, then redeploy the backend.
+   In Vercel, the frontend falls back to the live API if `NEXT_PUBLIC_API_URL` is unset. You can set it explicitly in the **frontend** project's environment variables for Production and/or Preview, then redeploy. The backend allows `https://miles-assist.vercel.app` and local development by default. For other frontend domains or Preview deployments, add their exact origins to the backend project's comma-separated `CORS_ORIGIN` value, then redeploy the backend.
 
 5. **Run the frontend** in a second terminal, from the repository root:
    ```bash
@@ -159,7 +159,7 @@ All endpoints except login require authentication. See the backend Swagger page 
    - **Email**: `admin@example.com`
    - **Password**: `Admin@123`
 
-   These are local development credentials only. Do not use them in production; provision a unique administrator password and protect the production API configuration.
+   These seed credentials are for a locally seeded database only. Production login requires an administrator account provisioned in the live backend database; local seed credentials will not work there.
 
 6. **Build for production**:
    ```bash
