@@ -16,24 +16,19 @@ A responsive, high-performance Admin Dashboard web application built with **Next
 - **Top Bar & Navigation Tabs**: Unified header with global search, notification dropdowns, profile drawer trigger, and category tabs.
 
 ### 2. Users Management (`/users`)
-- Integrated with public REST API (`https://dummyjson.com/users`).
+- Loads users from the configured Miles Assist backend API.
 - Real-time search by name, email, or role.
-- Role (`Admin`, `Editor`, `Viewer`) and Status (`Active`, `Inactive`, `Suspended`) filtering.
-- Interactive **Add User Modal** to create new users with validation.
-- Multi-selection with bulk actions (Delete selected, Change role).
+- Status filtering and user creation, editing, and deletion through the backend API.
 - Direct navigation to detailed User Profiles (`/user-profile`).
 
 ### 3. Transactions Management (`/transactions`)
-- Integrated with public REST API (`https://dummyjson.com/carts`).
-- Financial cart and transaction ledger displaying items, user details, totals, payment status, and timestamps.
-- Status filters (`All`, `Completed`, `Pending`, `Refunded`).
-- Direct navigation to Transaction Detail view (`/transaction-detail`) with refund processing and receipt printing simulation.
+- Loads persisted transactions and related user details from the backend API.
+- Supports server-side search, status and amount filters, and transaction status updates.
+- Direct navigation to Transaction Detail view (`/transaction-detail`).
 
 ### 4. Bookings Management (`/bookings`)
-- Integrated with public REST API (`https://dummyjson.com/todos`).
-- Scheduled appointment list with service types, durations, customer info, and status badges.
-- Tabbed filters (`All`, `Confirmed`, `Completed`, `Pending`, `Cancelled`).
-- Quick actions to mark confirmed/completed or reschedule.
+- Loads persisted bookings and related user details from the backend API.
+- Supports booking creation, status updates, and rescheduling through the API.
 - Direct navigation to Booking Detail view (`/booking-detail`).
 
 ### 5. Detailed Views
@@ -53,22 +48,25 @@ A responsive, high-performance Admin Dashboard web application built with **Next
 | **Client State Management** | Redux Toolkit (`@reduxjs/toolkit`, `react-redux`) |
 | **Styling & UI** | Tailwind CSS v4, Lucide React Icons |
 | **Data Visualization** | Recharts |
-| **Public REST API** | DummyJSON (`https://dummyjson.com`) |
+| **Backend API** | Miles Assist NestJS REST API backed by PostgreSQL |
 
 ---
 
-## 🌐 Public REST APIs Used
+## 🌐 Dynamic Backend API Integration
 
-This application connects to free, public REST APIs from **DummyJSON** to populate live data:
+The frontend reads `NEXT_PUBLIC_API_URL` and sends requests through the shared client in `src/lib/auth-api.ts`. The API functions in `src/lib/api.ts` fetch dashboard metrics, users, transactions, bookings, reports, and settings from the Miles Assist NestJS backend. These records are loaded dynamically from the backend and stored in PostgreSQL.
 
-1. **Users API**: `https://dummyjson.com/users?limit=30`
-   - Supplies real user profiles, names, email addresses, roles, and avatar images.
-2. **User Detail API**: `https://dummyjson.com/users/{id}`
-   - Supplies individual user profile information, contact numbers, and company metadata.
-3. **Transactions/Carts API**: `https://dummyjson.com/carts?limit=20`
-   - Supplies financial transactions, total cart prices, item quantities, and product item breakdowns.
-4. **Bookings/Todos API**: `https://dummyjson.com/todos?limit=20`
-   - Supplies real service appointments, scheduled task status, and completion flags.
+After a successful login, the frontend stores the returned JWT and includes it as a bearer token on protected API requests. TanStack Query handles loading, caching, refetching, and mutation updates in the dashboard pages.
+
+| Area | Backend endpoints |
+|---|---|
+| Authentication | `POST /auth/login`, `GET /auth/me` |
+| Dashboard | `GET /dashboard/stats`, `/dashboard/charts`, `/dashboard/alerts`, `/dashboard/health`, `/dashboard/analytics`, `/dashboard/reports`, `/dashboard/settings`; `PATCH /dashboard/settings` |
+| Users | `GET /users`, `GET /users/:id`, `POST /users`, `PATCH /users/:id`, `DELETE /users/:id` |
+| Transactions | `GET /transactions`, `GET /transactions/:id`, `POST /transactions`, `PATCH /transactions/:id/status` |
+| Bookings | `GET /bookings`, `GET /bookings/:id`, `POST /bookings`, `PATCH /bookings/:id` |
+
+All endpoints except login require authentication. See the backend Swagger page at `/api/docs` for request parameters and response schemas.
 
 ---
 
@@ -77,7 +75,7 @@ This application connects to free, public REST APIs from **DummyJSON** to popula
 ### 1. Server State (TanStack Query)
 - **Caching & Stale Time**: Handles server data fetching, automatic background revalidation, caching, and deduplication.
 - **Loading & Error States**: Provides clean `isLoading` skeleton states and retryable `isError` fallbacks across all pages.
-- **Separation of Concerns**: Data fetching logic is encapsulated in `src/lib/api.ts` and called inside components via `useQuery` hooks.
+- **Separation of Concerns**: Data fetching and mutations are encapsulated in `src/lib/api.ts` and called from components via TanStack Query hooks.
 
 ### 2. Client Application State (Redux Toolkit)
 - **Global UI State Slice (`src/lib/store/uiSlice.ts`)**:
@@ -112,7 +110,7 @@ This application connects to free, public REST APIs from **DummyJSON** to popula
 ## 🚀 Getting Started & Setup Instructions
 
 ### Prerequisites
-- Node.js version `18.x` or higher
+- Node.js version `22.x` (required by the backend)
 - npm, yarn, or pnpm
 
 ### Installation
@@ -150,6 +148,8 @@ This application connects to free, public REST APIs from **DummyJSON** to popula
    NEXT_PUBLIC_API_URL=http://localhost:3001
    ```
    If you change the backend port, use that same port in `NEXT_PUBLIC_API_URL`. Restart the frontend after changing this value.
+
+   In Vercel, set `NEXT_PUBLIC_API_URL` in the **frontend** project's environment variables for each environment you use (Production and/or Preview), then redeploy. Set the backend project's `CORS_ORIGIN` to the exact deployed frontend origin and redeploy the backend.
 
 5. **Run the frontend** in a second terminal, from the repository root:
    ```bash
@@ -200,7 +200,7 @@ miles-assist/
 │   │   ├── BookingDetailPage.tsx     # Booking appointment detail view
 │   │   └── AddUserModal.tsx          # New user creation modal dialog
 │   └── lib/
-│       ├── api.ts                    # Public REST API client functions (DummyJSON)
+│       ├── api.ts                    # Backend REST API functions
 │       └── store/
 │           ├── store.ts              # Redux Toolkit store config
 │           └── uiSlice.ts            # UI state slice (Redux)
