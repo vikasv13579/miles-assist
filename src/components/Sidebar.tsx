@@ -39,6 +39,17 @@ export default function Sidebar() {
     setAdminEmail(localStorage.getItem('admin_email') ?? '');
   }, []);
 
+  useEffect(() => {
+    if (!sidebarOpen || !window.matchMedia('(max-width: 1023px)').matches) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [sidebarOpen]);
+
   function handleLogout() {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_email');
@@ -59,18 +70,17 @@ export default function Sidebar() {
       <aside 
         className={`
           fixed lg:sticky top-0 left-0 z-50 bg-[#1E293B] text-white
-          w-[240px] h-screen py-[24px] px-[16px]
-          flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 overflow-hidden shadow-xl lg:shadow-none
+          w-[min(240px,88vw)] h-dvh min-h-dvh px-[16px] py-[24px]
+          flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 overflow-y-auto overscroll-contain shadow-xl lg:shadow-none
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
-        style={{ width: '240px', padding: '24px 16px' }}
       >
         {/* BRAND GROUP */}
-        <div className="w-[208px] h-[220px] flex flex-col gap-[24px]">
+        <div className="w-full flex shrink-0 flex-col gap-[24px]">
           {/* Brand Header */}
           <Link 
             href="/"
-            className="w-[208px] h-[32px] flex items-center gap-[10px] cursor-pointer"
+            className="flex h-[32px] w-full items-center gap-[10px] cursor-pointer"
           >
             <div className="w-[32px] h-[32px] bg-[#4F46E5] rounded-[8px] flex items-center justify-center shrink-0">
               <Cpu className="w-[18px] h-[18px] text-white" />
@@ -81,7 +91,7 @@ export default function Sidebar() {
           </Link>
 
           {/* Navigation List */}
-          <nav className="w-[208px] h-[164px] flex flex-col gap-[4px]">
+          <nav className="flex w-full flex-col gap-[4px]">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -112,16 +122,16 @@ export default function Sidebar() {
         </div>
 
         {/* SIDEBAR PROFILE */}
-        <div className="w-[208px]">
-          <div className="w-[208px] h-[52px] border-t border-[#334155] pt-[16px] flex items-center gap-[12px]">
+        <div className="w-full shrink-0">
+          <div className="flex min-h-[52px] w-full items-center gap-[12px] border-t border-[#334155] pt-[16px]">
             <div className="w-[36px] h-[36px] rounded-[18px] bg-[#334155] text-white font-semibold text-[13px] flex items-center justify-center shrink-0 overflow-hidden">
               <span>{(adminEmail.split('@')[0].slice(0, 2) || 'AD').toUpperCase()}</span>
             </div>
-            <div className="flex flex-col gap-[2px]">
-              <span className="w-[160px] h-[17px] text-[14px] font-bold leading-[100%] text-white truncate flex items-center font-sans">
+            <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+              <span className="h-[17px] w-full text-[14px] font-bold leading-[100%] text-white truncate flex items-center font-sans">
                 {adminEmail || 'Administrator'}
               </span>
-              <span className="w-[160px] h-[15px] text-[12px] font-medium leading-[100%] text-[#94A3B8] truncate flex items-center font-sans">
+              <span className="h-[15px] w-full text-[12px] font-medium leading-[100%] text-[#94A3B8] truncate flex items-center font-sans">
                 Administrator
               </span>
             </div>

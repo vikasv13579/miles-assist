@@ -94,12 +94,12 @@ export default function TopBar() {
         </div>
 
         {/* Desktop Greetings Header */}
-        <div className="hidden lg:flex w-[190px] h-[41px] flex-col justify-between gap-[4px]">
-          <h1 className="w-[190px] h-[22px] font-bold text-[18px] leading-[100%] text-[#0F172A] font-sans flex items-center">
+        <div className="hidden lg:flex w-[260px] h-auto min-w-0 shrink-0 flex-col justify-between gap-[4px]">
+          <h1 className="w-full min-h-[22px] break-words font-bold text-[18px] leading-[22px] text-[#0F172A] font-sans">
             Welcome back{adminEmail ? `, ${adminEmail.split('@')[0]}` : ''}
           </h1>
-          <span className="w-[145px] h-[15px] font-normal text-[12px] leading-[100%] text-[#64748B] font-sans flex items-center">
-            {new Date().toLocaleDateString()}
+          <span className="whitespace-nowrap font-normal text-[12px] leading-[15px] text-[#64748B] font-sans flex items-center">
+            {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </span>
         </div>
       </div>
@@ -107,8 +107,8 @@ export default function TopBar() {
       {/* Header Right */}
       <div className="flex items-center gap-[12px] lg:gap-[20px]">
         {/* Search Bar */}
-        <div className="relative hidden sm:block w-[calc(100vw-278px)] min-w-[70px] max-w-[150px] sm:w-[240px] h-[36px] lg:h-[40px]" ref={searchRef}>
-          <Search className="w-[14px] lg:w-[16px] h-[14px] lg:h-[16px] absolute left-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+        <div className="relative hidden sm:block w-[150px] lg:w-[240px] h-[32px] shrink-0" ref={searchRef}>
+          <Search className="w-[16px] h-[16px] absolute left-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
           <Input
             type="text"
             placeholder="Search console..."
@@ -118,7 +118,7 @@ export default function TopBar() {
               dispatch(setSearchQuery(e.target.value));
               setIsOpen(true);
             }}
-            className="w-full h-[36px] lg:h-[40px] pl-8 lg:pl-9 pr-6 lg:pr-8 bg-[#F8FAFC] border-[#E2E8F0] rounded-[8px] text-[12px] lg:text-[13px]"
+            className="w-full h-[32px] pl-9 pr-8 bg-[#F8FAFC] border-[#E2E8F0] rounded-[8px] text-[13px]"
           />
           {searchQuery && (
             <Button
@@ -177,8 +177,8 @@ export default function TopBar() {
             className="relative w-[32px] lg:w-[40px] h-[32px] lg:h-[40px] rounded-[16px] lg:rounded-[20px] border border-[#E2E8F0] flex items-center justify-center text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors cursor-pointer"
             title="Notifications"
           >
-            <Bell className="w-4 h-4 text-[#64748B]" />
-            <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] bg-[#EF4444] text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
+            <Bell className="w-4 h-4 lg:w-5 lg:h-5 text-[#475569]" />
+            <span className="absolute -top-1 -right-1 lg:top-[2px] lg:right-[2px] min-w-[14px] lg:w-[18px] h-[14px] lg:h-[18px] bg-[#EF4444] text-white text-[9px] lg:text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 lg:px-0">
               {alertsQuery.data?.length ?? 0}
             </span>
           </button>

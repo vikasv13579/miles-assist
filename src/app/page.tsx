@@ -65,7 +65,7 @@ export default function Home() {
         <div className="w-full min-w-0 max-w-[1136px] flex flex-col gap-4 lg:gap-[24px] mx-auto">
           {/* Mobile Greetings Header (Mobile width 358px, height 39px) */}
           <div className="lg:hidden w-full max-w-[358px] flex flex-col justify-center gap-[2px]">
-            <h1 className="text-[18px] font-bold leading-[100%] text-[#0F172A] font-sans">
+            <h1 className="max-w-full break-words text-[18px] font-bold leading-[100%] text-[#0F172A] font-sans">
               Welcome back{adminEmail ? `, ${adminEmail.split('@')[0]}` : ''}
             </h1>
             <span className="text-[12px] font-normal leading-[100%] text-[#64748B] font-sans">
