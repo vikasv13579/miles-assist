@@ -17,7 +17,7 @@ function getApiBaseUrl() {
   )?.trim().replace(/\/+$/, '');
   if (!apiBaseUrl) {
     throw new Error(
-      'Sign-in is unavailable because the API endpoint is not configured. Set NEXT_PUBLIC_API_URL and restart the frontend.',
+      'The API URL is not configured for this deployment. In your Vercel frontend project, set NEXT_PUBLIC_API_URL for this environment (Production or Preview), then redeploy. No login request was sent.',
     );
   }
   return apiBaseUrl;
