@@ -1,35 +1,51 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell, Menu, X, ArrowRight, User, CreditCard, Layers, Cpu } from 'lucide-react';
+import { Search, Bell, Menu, X, ArrowRight, User, CreditCard, Layers, Cpu, Calendar } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { RootState } from '@/lib/store/store';
 import { toggleSidebar, setSearchQuery, setActiveNav } from '@/lib/store/uiSlice';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { fetchBookings, fetchSystemAlerts, fetchTransactions, fetchUsers } from '@/lib/api';
 
 const searchCategories = [
   { id: 'dashboard', title: 'Dashboard Overview', type: 'page', icon: Layers },
   { id: 'users', title: 'Users & Customers', type: 'page', icon: User },
   { id: 'transactions', title: 'Transactions Log', type: 'page', icon: CreditCard },
-  { id: 'txn-1082', title: 'Transaction #TXN-1082 - Albert Flores ($150.00)', type: 'transaction', icon: CreditCard },
-  { id: 'txn-1081', title: 'Transaction #TXN-1081 - Jenny Wilson ($2,350.00)', type: 'transaction', icon: CreditCard },
-  { id: 'sarah', title: 'Sarah Jenkins (Super Admin Profile)', type: 'user', icon: User },
 ];
 
 export default function TopBar() {
+  const router = useRouter();
   const dispatch = useDispatch();
   const searchQuery = useSelector((state: RootState) => state.ui.searchQuery);
   const [isOpen, setIsOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const filteredResults = searchCategories.filter((item) =>
+  const usersQuery = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+  const transactionsQuery = useQuery({ queryKey: ['transactions'], queryFn: fetchTransactions });
+  const bookingsQuery = useQuery({ queryKey: ['bookings'], queryFn: fetchBookings });
+  const alertsQuery = useQuery({ queryKey: ['dashboard-alerts'], queryFn: fetchSystemAlerts });
+  const allResults = [
+    ...searchCategories,
+    ...(usersQuery.data ?? []).map((user) => ({ id: user.id, title: `${user.name} (${user.email})`, type: 'user', icon: User })),
+    ...(transactionsQuery.data ?? []).map((transaction) => ({ id: transaction.id, title: `Transaction ${transaction.reference}`, type: 'transaction', icon: CreditCard })),
+    ...(bookingsQuery.data ?? []).map((booking) => ({ id: booking.id, title: `Booking ${booking.reference}`, type: 'booking', icon: Calendar })),
+  ];
+  const filteredResults = allResults.filter((item) =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  useEffect(() => {
+    setAdminEmail(localStorage.getItem('admin_email') ?? '');
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -44,13 +60,15 @@ export default function TopBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelectResult = (item: typeof searchCategories[0]) => {
+  const handleSelectResult = (item: (typeof allResults)[number]) => {
     if (item.type === 'page') {
       dispatch(setActiveNav(item.id));
-    } else if (item.id.startsWith('txn-')) {
-      dispatch(setActiveNav('transactions'));
-    } else if (item.id === 'sarah') {
-      dispatch(setActiveNav('profile'));
+    } else if (item.type === 'transaction') {
+      router.push(`/transaction-detail?id=${encodeURIComponent(item.id)}`);
+    } else if (item.type === 'booking') {
+      router.push(`/booking-detail?id=${encodeURIComponent(item.id)}`);
+    } else {
+      router.push(`/user-profile?id=${encodeURIComponent(item.id)}`);
     }
     setIsOpen(false);
   };
@@ -78,10 +96,10 @@ export default function TopBar() {
         {/* Desktop Greetings Header */}
         <div className="hidden lg:flex w-[190px] h-[41px] flex-col justify-between gap-[4px]">
           <h1 className="w-[190px] h-[22px] font-bold text-[18px] leading-[100%] text-[#0F172A] font-sans flex items-center">
-            Welcome back, Sarah
+            Welcome back{adminEmail ? `, ${adminEmail.split('@')[0]}` : ''}
           </h1>
           <span className="w-[145px] h-[15px] font-normal text-[12px] leading-[100%] text-[#64748B] font-sans flex items-center">
-            Tuesday, October 1, 2024
+            {new Date().toLocaleDateString()}
           </span>
         </div>
       </div>
@@ -161,7 +179,7 @@ export default function TopBar() {
           >
             <Bell className="w-4 h-4 text-[#64748B]" />
             <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] bg-[#EF4444] text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
-              3
+              {alertsQuery.data?.length ?? 0}
             </span>
           </button>
 
@@ -170,40 +188,31 @@ export default function TopBar() {
             <Card className="absolute right-0 top-full mt-2 w-[300px] sm:w-[340px] shadow-xl z-50 p-3 flex flex-col gap-2">
               <div className="flex items-center justify-between pb-2 border-b border-[#F1F5F9]">
                 <span className="text-[13px] font-bold text-[#0F172A]">Notifications</span>
-                <Badge variant="secondary" className="text-[11px] font-semibold text-[#4F46E5] bg-[#EEF2FF] hover:bg-[#EEF2FF]">3 New</Badge>
+                <Badge variant="secondary" className="text-[11px] font-semibold text-[#4F46E5] bg-[#EEF2FF] hover:bg-[#EEF2FF]">{alertsQuery.data?.length ?? 0} New</Badge>
               </div>
               <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto">
-                <div className="p-2 bg-[#F8FAFC] rounded-[6px] flex flex-col gap-0.5 border-l-2 border-[#EF4444]">
-                  <span className="text-[12px] font-bold text-[#0F172A]">API Gateway Timeout</span>
-                  <span className="text-[11px] text-[#64748B]">Stripe payment webhook delayed by 1.2s</span>
-                  <span className="text-[10px] text-[#94A3B8]">5 mins ago</span>
-                </div>
-                <div className="p-2 bg-[#F8FAFC] rounded-[6px] flex flex-col gap-0.5 border-l-2 border-[#F59E0B]">
-                  <span className="text-[12px] font-bold text-[#0F172A]">Database CPU Usage Spike</span>
-                  <span className="text-[11px] text-[#64748B]">PostgreSQL cluster hit 88% load limit</span>
-                  <span className="text-[10px] text-[#94A3B8]">18 mins ago</span>
-                </div>
-                <div className="p-2 bg-[#F8FAFC] rounded-[6px] flex flex-col gap-0.5 border-l-2 border-[#10B981]">
-                  <span className="text-[12px] font-bold text-[#0F172A]">New Booking Confirmed</span>
-                  <span className="text-[11px] text-[#64748B]">Sarah Johnson booked Business Consultation</span>
-                  <span className="text-[10px] text-[#94A3B8]">1 hour ago</span>
-                </div>
+                {alertsQuery.isLoading ? (
+                  <span className="text-[12px] text-[#64748B]">Loading alerts…</span>
+                ) : alertsQuery.isError ? (
+                  <button onClick={() => void alertsQuery.refetch()} className="text-left text-[12px] text-[#991B1B]">Could not load alerts. Try again.</button>
+                ) : (alertsQuery.data ?? []).length === 0 ? (
+                  <span className="text-[12px] text-[#64748B]">No active alerts.</span>
+                ) : (
+                  alertsQuery.data?.map((alert, index) => (
+                    <div key={`${alert.type}-${index}`} className="p-2 bg-[#F8FAFC] rounded-[6px] flex flex-col gap-0.5 border-l-2 border-[#F59E0B]">
+                      <span className="text-[12px] font-bold text-[#0F172A]">{alert.type}</span>
+                      <span className="text-[11px] text-[#64748B]">{alert.message}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </Card>
           )}
         </div>
 
         {/* User Profile Avatar: Mobile 32x32 rounded 16px */}
-        <div 
-          onClick={() => dispatch(setActiveNav('profile'))}
-          className="w-[32px] lg:w-[36px] h-[32px] lg:h-[36px] rounded-[16px] lg:rounded-[18px] overflow-hidden border border-[#E2E8F0] shadow-sm cursor-pointer hover:ring-2 hover:ring-[#4F46E5] transition-all shrink-0"
-          title="View Super Admin Profile"
-        >
-          <img 
-            src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80" 
-            alt="Sarah Jenkins" 
-            className="w-full h-full object-cover"
-          />
+        <div className="w-[32px] lg:w-[36px] h-[32px] lg:h-[36px] rounded-full bg-[#E0E7FF] text-[#4338CA] border border-[#E2E8F0] shadow-sm flex items-center justify-center text-[11px] font-bold shrink-0" title={adminEmail || 'Admin'}>
+          {(adminEmail.split('@')[0].slice(0, 2) || 'AD').toUpperCase()}
         </div>
       </div>
     </header>

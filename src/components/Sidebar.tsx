@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -8,7 +8,8 @@ import {
   Users, 
   ArrowRightLeft, 
   Calendar, 
-  Cpu
+  Cpu,
+  LogOut
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/lib/store/store';
@@ -32,6 +33,17 @@ export default function Sidebar() {
   const dispatch = useDispatch();
   const pathname = usePathname();
   const sidebarOpen = useSelector((state: RootState) => state.ui.sidebarOpen);
+  const [adminEmail, setAdminEmail] = useState('');
+
+  useEffect(() => {
+    setAdminEmail(localStorage.getItem('admin_email') ?? '');
+  }, []);
+
+  function handleLogout() {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_email');
+    window.location.replace('/login');
+  }
 
   return (
     <>
@@ -100,26 +112,28 @@ export default function Sidebar() {
         </div>
 
         {/* SIDEBAR PROFILE */}
-        <div className="w-[208px] h-[52px] border-t border-[#334155] pt-[16px] flex items-center gap-[12px]">
-          <div className="w-[36px] h-[36px] rounded-[18px] bg-[#334155] text-white font-semibold text-[13px] flex items-center justify-center shrink-0 overflow-hidden">
-            <img 
-              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80" 
-              alt="Sarah Jenkins"
-              className="w-[36px] h-[36px] rounded-[18px] object-cover"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
-            />
-            <span className="absolute">SJ</span>
+        <div className="w-[208px]">
+          <div className="w-[208px] h-[52px] border-t border-[#334155] pt-[16px] flex items-center gap-[12px]">
+            <div className="w-[36px] h-[36px] rounded-[18px] bg-[#334155] text-white font-semibold text-[13px] flex items-center justify-center shrink-0 overflow-hidden">
+              <span>{(adminEmail.split('@')[0].slice(0, 2) || 'AD').toUpperCase()}</span>
+            </div>
+            <div className="flex flex-col gap-[2px]">
+              <span className="w-[160px] h-[17px] text-[14px] font-bold leading-[100%] text-white truncate flex items-center font-sans">
+                {adminEmail || 'Administrator'}
+              </span>
+              <span className="w-[160px] h-[15px] text-[12px] font-medium leading-[100%] text-[#94A3B8] truncate flex items-center font-sans">
+                Administrator
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col gap-[2px]">
-            <span className="w-[160px] h-[17px] text-[14px] font-bold leading-[100%] text-white truncate flex items-center font-sans">
-              Sarah Jenkins
-            </span>
-            <span className="w-[160px] h-[15px] text-[12px] font-medium leading-[100%] text-[#94A3B8] truncate flex items-center font-sans">
-              Super Admin
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            className="mt-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#94A3B8] transition-colors hover:bg-[#2A3749] hover:text-white"
+          >
+            <LogOut className="h-4 w-4" />
+            Log out
+          </button>
         </div>
       </aside>
     </>

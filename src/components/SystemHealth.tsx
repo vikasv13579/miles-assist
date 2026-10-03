@@ -1,50 +1,65 @@
 'use client';
 
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store/store';
-
-const allMetrics = [
-  { label: 'Uptime', value: '99.8%' },
-  { label: 'Avg Response Time', value: '142ms' },
-  { label: 'Active Sessions', value: '3,241' },
-];
+import { useQuery } from '@tanstack/react-query';
+import { fetchBackendHealth } from '@/lib/api';
 
 export default function SystemHealth() {
-  const searchQuery = useSelector((state: RootState) => state.ui.searchQuery);
-
-  const filteredMetrics = allMetrics.filter((m) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return m.label.toLowerCase().includes(q) || m.value.toLowerCase().includes(q);
+  const healthQuery = useQuery({
+    queryKey: ['backend-health'],
+    queryFn: fetchBackendHealth,
+    refetchInterval: 30_000,
   });
+  const health = healthQuery.data;
+  const uptimeDays = Math.floor((health?.uptimeSeconds ?? 0) / 86_400);
+  const uptimeHours = Math.floor(((health?.uptimeSeconds ?? 0) % 86_400) / 3_600);
+  const uptimeMinutes = Math.floor(((health?.uptimeSeconds ?? 0) % 3_600) / 60);
+  const uptime = uptimeDays > 0
+    ? `${uptimeDays}d ${uptimeHours}h`
+    : uptimeHours > 0
+      ? `${uptimeHours}h ${uptimeMinutes}m`
+      : `${uptimeMinutes}m`;
+  const metrics = [
+    {
+      label: 'Uptime',
+      value: health ? uptime : '—',
+    },
+    {
+      label: 'Avg Response Time',
+      value: health?.averageResponseTimeMs === null
+        ? 'Collecting…'
+        : health
+          ? `${health.averageResponseTimeMs}ms`
+          : '—',
+    },
+    {
+      label: 'Active Users',
+      value: health?.activeUsers.toLocaleString() ?? '—',
+    },
+  ];
 
   return (
-    <div className="w-full lg:w-[360px] h-[99px] lg:h-[167px] bg-white border border-[#E2E8F0] rounded-[8px] p-4 lg:p-[20px] flex flex-col gap-[16px] shadow-xs shrink-0 overflow-hidden box-border">
-      <h3 className="text-[14px] lg:text-[16px] font-bold text-[#0F172A] leading-[19px]">
+    <div className="box-border flex h-auto min-h-[132px] w-full min-w-0 shrink-0 flex-col gap-2 rounded-lg border border-[#E2E8F0] bg-white p-4 shadow-xs min-[1440px]:min-h-[169px] min-[1440px]:gap-4 min-[1440px]:p-5">
+      <h3 className="text-[14px] font-bold leading-[19px] text-[#0F172A] min-[1440px]:text-[16px]">
         System Health
       </h3>
 
-      <div className="flex flex-col gap-[10px]">
-        {filteredMetrics.length === 0 ? (
-          <div className="text-[11px] lg:text-[12px] text-[#64748B]">
-            No metrics matching &quot;{searchQuery}&quot;
+      <div className="flex min-h-0 flex-col gap-1 min-[1440px]:gap-[10px]">
+        {healthQuery.isError ? (
+          <div role="alert" className="flex items-center justify-between gap-2 text-[12px] text-[#B91C1C]">
+            <span>Health metrics unavailable.</span>
+            <button onClick={() => void healthQuery.refetch()} className="font-semibold underline">
+              Retry
+            </button>
           </div>
-        ) : (
-          filteredMetrics.map((metric, idx) => (
-            <div
-              key={idx}
-              className="flex flex-row justify-between items-center py-[4px] h-[24px] border-b border-[#E2E8F0] last:border-0 box-border"
-            >
-              <span className="font-normal text-[13px] leading-[16px] text-[#475569]">
-                {metric.label}
-              </span>
-              <span className="font-semibold text-[13px] leading-[16px] text-[#0F172A]">
-                {metric.value}
-              </span>
-            </div>
-          ))
-        )}
+        ) : metrics.map((metric) => (
+          <div key={metric.label} className="flex h-5 flex-row items-center justify-between border-b border-[#E2E8F0] last:border-0 min-[1440px]:h-6">
+            <span className="text-[12px] font-normal leading-4 text-[#475569] min-[1440px]:text-[13px]">{metric.label}</span>
+            <span className="text-[12px] font-semibold leading-4 text-[#0F172A] min-[1440px]:text-[13px]">
+              {healthQuery.isLoading ? 'Loading…' : metric.value}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,37 +1,54 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddUser: (user: { name: string; email: string; role: 'Admin' | 'Editor' | 'Viewer'; status: 'Active' | 'Inactive' | 'Suspended' }) => void;
+  onAddUser: (user: { name: string; email: string; phone?: string; status: 'ACTIVE' | 'INACTIVE' }) => Promise<void>;
+  initialUser?: { name: string; email: string; phone: string | null; status: 'Active' | 'Inactive' } | null;
 }
 
-export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModalProps) {
+export default function AddUserModal({ isOpen, onClose, onAddUser, initialUser }: AddUserModalProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'Admin' | 'Editor' | 'Viewer'>('Editor');
-  const [status, setStatus] = useState<'Active' | 'Inactive' | 'Suspended'>('Active');
+  const [phone, setPhone] = useState('');
+  const [status, setStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setName(initialUser?.name ?? '');
+    setEmail(initialUser?.email ?? '');
+    setPhone(initialUser?.phone ?? '');
+    setStatus(initialUser?.status === 'Inactive' ? 'INACTIVE' : 'ACTIVE');
+    setError('');
+  }, [initialUser, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) {
       setError('Please provide both name and email address.');
       return;
     }
     setError('');
-    onAddUser({ name, email, role, status });
-    setName('');
-    setEmail('');
-    setRole('Editor');
-    setStatus('Active');
-    onClose();
+    setIsSaving(true);
+    try {
+      await onAddUser({ name, email, phone: phone.trim() || undefined, status });
+      setName('');
+      setEmail('');
+      setPhone('');
+      onClose();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Could not save user.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -41,7 +58,7 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
         <div className="px-6 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-[#F8FAFC]">
           <div className="flex items-center gap-2 text-[#0F172A]">
             <UserPlus className="w-5 h-5 text-[#4F46E5]" />
-            <h3 className="text-[16px] font-bold">Add New User</h3>
+            <h3 className="text-[16px] font-bold">{initialUser ? 'Edit User' : 'Add New User'}</h3>
           </div>
           <button
             onClick={onClose}
@@ -83,28 +100,24 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-[#0F172A]">Role</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as 'Admin' | 'Editor' | 'Viewer')}
-                className="h-[38px] px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A] focus:outline-none cursor-pointer"
-              >
-                <option value="Admin">Admin</option>
-                <option value="Editor">Editor</option>
-                <option value="Viewer">Viewer</option>
-              </select>
+              <label className="text-[13px] font-semibold text-[#0F172A]">Phone (optional)</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="h-[38px] px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A] focus:outline-none focus:border-[#4F46E5]"
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-[#0F172A]">Status</label>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive' | 'Suspended')}
+                onChange={(e) => setStatus(e.target.value as 'ACTIVE' | 'INACTIVE')}
                 className="h-[38px] px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A] focus:outline-none cursor-pointer"
               >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Suspended">Suspended</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
               </select>
             </div>
           </div>
@@ -121,9 +134,10 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
             </Button>
             <Button
               type="submit"
+              disabled={isSaving}
               className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-[13px] font-semibold shadow-xs"
             >
-              Add User
+              {isSaving ? 'Saving…' : initialUser ? 'Save Changes' : 'Add User'}
             </Button>
           </div>
         </form>

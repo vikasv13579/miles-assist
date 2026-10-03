@@ -1,162 +1,74 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store/store';
 import { 
   Search, 
   Plus, 
-  Filter, 
   Pencil, 
   Trash2, 
   Check, 
   CheckCircle2,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  LoaderCircle
 } from 'lucide-react';
-import { fetchUsers, ApiUser } from '@/lib/api';
+import { createUser, deleteUser, fetchUsers, updateUser } from '@/lib/api';
 import AddUserModal from '@/components/AddUserModal';
 import { SkeletonRows } from '@/components/Skeleton';
 
 interface UserRecord {
-  id: number;
+  id: string;
   name: string;
   email: string;
   avatar: string;
-  role: 'Admin' | 'Editor' | 'Viewer';
-  status: 'Active' | 'Inactive' | 'Suspended';
+  phone: string | null;
+  status: 'Active' | 'Inactive';
   joinDate: string;
-  lastActive: string;
+  updatedAt: string;
+  createdAt: string;
 }
 
 const PAGE_SIZE = 8;
 
-const defaultUsers: UserRecord[] = [
-  {
-    id: 1,
-    name: 'Sarah Jenkins',
-    email: 'jane.c@example.com',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-    role: 'Admin',
-    status: 'Active',
-    joinDate: 'Jan 12, 2024',
-    lastActive: '2 mins ago',
-  },
-  {
-    id: 2,
-    name: 'Wade Warren',
-    email: 'wade.w@example.com',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-    role: 'Editor',
-    status: 'Active',
-    joinDate: 'Feb 22, 2024',
-    lastActive: '1 hour ago',
-  },
-  {
-    id: 3,
-    name: 'Cameron Williamson',
-    email: 'cameron.w@example.com',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80',
-    role: 'Viewer',
-    status: 'Inactive',
-    joinDate: 'Mar 10, 2024',
-    lastActive: '3 days ago',
-  },
-  {
-    id: 4,
-    name: 'Arlene McCoy',
-    email: 'arlene.m@example.com',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    role: 'Editor',
-    status: 'Active',
-    joinDate: 'Apr 05, 2024',
-    lastActive: 'Just now',
-  },
-  {
-    id: 5,
-    name: 'Eleanor Pena',
-    email: 'eleanor.p@example.com',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
-    role: 'Viewer',
-    status: 'Suspended',
-    joinDate: 'May 19, 2024',
-    lastActive: '1 week ago',
-  },
-  {
-    id: 6,
-    name: 'Kristin Watson',
-    email: 'kristin.w@example.com',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
-    role: 'Admin',
-    status: 'Active',
-    joinDate: 'Jun 01, 2024',
-    lastActive: '5 mins ago',
-  },
-  {
-    id: 7,
-    name: 'Robert Fox',
-    email: 'robert.f@example.com',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    role: 'Viewer',
-    status: 'Active',
-    joinDate: 'Jun 14, 2024',
-    lastActive: '10 mins ago',
-  },
-  {
-    id: 8,
-    name: 'Leslie Alexander',
-    email: 'leslie.a@example.com',
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&auto=format&fit=crop&q=80',
-    role: 'Editor',
-    status: 'Inactive',
-    joinDate: 'Jul 29, 2024',
-    lastActive: '4 days ago',
-  },
-];
-
 export default function UsersPage() {
+  const queryClient = useQueryClient();
   const globalSearchQuery = useSelector((state: RootState) => state.ui.searchQuery);
   const [localSearch, setLocalSearch] = useState('');
   const [pagination, setPagination] = useState({ filterKey: '', page: 1 });
-  const [selectedIds, setSelectedIds] = useState<number[]>([1, 2]);
-  const [roleFilter, setRoleFilter] = useState('All');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [addedUsers, setAddedUsers] = useState<UserRecord[]>([]);
-  const [userOverrides, setUserOverrides] = useState<Record<number, Partial<Pick<UserRecord, 'role' | 'status'>>>>({});
+  const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const { data: apiUsers, isLoading, isError, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsers,
   });
 
-  const baseUsersList: UserRecord[] = apiUsers && apiUsers.length > 0
-    ? apiUsers.map((u: ApiUser, idx: number) => {
-        const roles: ('Admin' | 'Editor' | 'Viewer')[] = ['Admin', 'Editor', 'Viewer', 'Editor', 'Viewer', 'Admin', 'Viewer', 'Editor'];
-        const statuses: ('Active' | 'Inactive' | 'Suspended')[] = ['Active', 'Active', 'Inactive', 'Active', 'Suspended', 'Active', 'Active', 'Inactive'];
-        const dates = ['Jan 12, 2024', 'Feb 22, 2024', 'Mar 10, 2024', 'Apr 05, 2024', 'May 19, 2024', 'Jun 01, 2024', 'Jun 14, 2024', 'Jul 29, 2024'];
-        const actives = ['2 mins ago', '1 hour ago', '3 days ago', 'Just now', '1 week ago', '5 mins ago', '10 mins ago', '4 days ago'];
-        return {
-          id: u.id,
-          name: `${u.firstName} ${u.lastName}`,
-          email: u.email.toLowerCase(),
-          avatar: u.image,
-          role: roles[idx % roles.length],
-          status: statuses[idx % statuses.length],
-          joinDate: dates[idx % dates.length],
-          lastActive: actives[idx % actives.length],
-        };
-      })
-    : defaultUsers;
-
-  const usersList = [...addedUsers, ...baseUsersList].map((user) => ({
-    ...user,
-    ...userOverrides[user.id],
+  const usersList: UserRecord[] = (apiUsers ?? []).map((user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatar: user.image,
+    phone: user.phone,
+    status: user.status === 'ACTIVE' ? 'Active' : 'Inactive',
+    joinDate: new Date(user.createdAt).toLocaleDateString(),
+    updatedAt: new Date(user.updatedAt).toLocaleDateString(),
+    createdAt: user.createdAt,
   }));
+  const joinedThisMonth = usersList.filter((user) => {
+    const joined = new Date(user.createdAt);
+    const now = new Date();
+    return joined.getMonth() === now.getMonth() && joined.getFullYear() === now.getFullYear();
+  }).length;
   const searchQuery = localSearch || globalSearchQuery;
-  const filterKey = `${searchQuery}|${roleFilter}|${statusFilter}`;
+  const filterKey = `${searchQuery}|${statusFilter}`;
   const currentPage = pagination.filterKey === filterKey ? pagination.page : 1;
   const setCurrentPage = (page: number) => setPagination({ filterKey, page });
 
@@ -164,33 +76,28 @@ export default function UsersPage() {
     const matchesSearch = !searchQuery.trim() || (
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchQuery.toLowerCase())
+      (user.phone ?? '').toLowerCase().includes(searchQuery.toLowerCase())
     );
-    const matchesRole = roleFilter === 'All' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'All' || user.status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesStatus;
   });
   const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
   const pageStart = (currentPage - 1) * PAGE_SIZE;
   const pageUsers = filteredUsers.slice(pageStart, pageStart + PAGE_SIZE);
 
-  const handleAddUser = (newUser: { name: string; email: string; role: 'Admin' | 'Editor' | 'Viewer'; status: 'Active' | 'Inactive' | 'Suspended' }) => {
-    const createdRecord: UserRecord = {
-      id: Date.now(),
-      name: newUser.name,
-      email: newUser.email,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      role: newUser.role,
-      status: newUser.status,
-      joinDate: 'Oct 01, 2024',
-      lastActive: 'Just now',
-    };
-    setAddedUsers((prev) => [createdRecord, ...prev]);
-    setSuccessToast(`User "${newUser.name}" created successfully!`);
+  const handleSaveUser = async (newUser: { name: string; email: string; phone?: string; status: 'ACTIVE' | 'INACTIVE' }) => {
+    if (editingUser) {
+      await updateUser(editingUser.id, newUser);
+    } else {
+      await createUser(newUser);
+    }
+    await queryClient.invalidateQueries({ queryKey: ['users'] });
+    setSuccessToast(`User "${newUser.name}" ${editingUser ? 'updated' : 'created'} successfully.`);
+    setEditingUser(null);
     setTimeout(() => setSuccessToast(null), 4000);
   };
 
-  const toggleSelectUser = (id: number) => {
+  const toggleSelectUser = (id: string) => {
     setSelectedIds((prev) => 
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
@@ -204,33 +111,51 @@ export default function UsersPage() {
     }
   };
 
-  const handleBulkRoleChange = (role: UserRecord['role']) => {
-    setUserOverrides((current) => {
-      const next = { ...current };
-      selectedIds.forEach((id) => {
-        next[id] = { ...next[id], role };
-      });
-      return next;
-    });
+  const selectedUsers = usersList.filter((user) => selectedIds.includes(user.id));
+  const shouldReactivate = selectedUsers.length > 0 && selectedUsers.every((user) => user.status === 'Inactive');
+
+  const handleBulkStatusChange = async () => {
+    try {
+      const status = shouldReactivate ? 'ACTIVE' : 'INACTIVE';
+      await Promise.all(selectedIds.map((id) => updateUser(id, { status })));
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
+      setSelectedIds([]);
+      setActionError(null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Could not update selected users.');
+    }
   };
 
-  const selectedUsers = usersList.filter((user) => selectedIds.includes(user.id));
-  const shouldReactivate = selectedUsers.length > 0 && selectedUsers.every((user) => user.status === 'Suspended');
-
-  const handleBulkStatusChange = () => {
-    const status: UserRecord['status'] = shouldReactivate ? 'Active' : 'Suspended';
-    setUserOverrides((current) => {
-      const next = { ...current };
-      selectedIds.forEach((id) => {
-        next[id] = { ...next[id], status };
-      });
-      return next;
-    });
+  const handleDeleteUser = async (id: string) => {
+    setDeletingUserId(id);
+    setActionError(null);
+    try {
+      await deleteUser(id);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['users'] }),
+        queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['transactions-page'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['user-detail'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-charts'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-alerts'] }),
+      ]);
+      setSelectedIds((ids) => ids.filter((selectedId) => selectedId !== id));
+      setSuccessToast('User and linked bookings and transactions deleted.');
+      setActionError(null);
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Could not delete user.');
+    } finally {
+      setDeletingUserId(null);
+    }
   };
 
   const handleExportCSV = () => {
-    const headers = ['User ID', 'Name', 'Email', 'Role', 'Status', 'Joined Date', 'Last Active'];
-    const rows = filteredUsers.map(u => [u.id, u.name, u.email, u.role, u.status, u.joinDate, u.lastActive]);
+    const headers = ['User ID', 'Name', 'Email', 'Phone', 'Status', 'Joined Date'];
+    const rows = filteredUsers.map(u => [u.id, u.name, u.email, u.phone ?? '', u.status, u.joinDate]);
     const csvContent = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -254,6 +179,11 @@ export default function UsersPage() {
           </button>
         </div>
       )}
+      {actionError && (
+        <div role="alert" className="w-full rounded-[8px] border border-[#FCA5A5] bg-[#FEF2F2] p-3 text-[13px] text-[#991B1B]">
+          {actionError}
+        </div>
+      )}
 
       {/* API Error State with Retry Button Controls */}
       {isError && (
@@ -261,7 +191,7 @@ export default function UsersPage() {
           <div className="flex items-center gap-2.5">
             <AlertTriangle className="w-5 h-5 text-[#EF4444] shrink-0" />
             <span className="font-medium">
-              API Error: Unable to sync live user directory with remote server. Showing fallback data.
+              API Error: Unable to load the user directory from the backend.
             </span>
           </div>
           <button
@@ -296,7 +226,7 @@ export default function UsersPage() {
           </button>
           {/* Desktop Add User Button */}
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
             className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-[#4F46E5] text-white rounded-[8px] text-[14px] font-semibold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-xs"
           >
             <Plus className="w-4 h-4" />
@@ -330,18 +260,18 @@ export default function UsersPage() {
         {/* Card 3: New This Month */}
         <div className="bg-white border border-[#E2E8F0] rounded-[6px] lg:rounded-[8px] p-[10px] lg:p-[16px] flex flex-col justify-center gap-[4px] lg:gap-[8px] shadow-xs">
           <span className="text-[10px] lg:text-[13px] font-medium text-[#64748B]">
-            <span className="lg:hidden">New This Mo</span>
-            <span className="hidden lg:inline">Added This Session</span>
+            <span className="lg:hidden">Joined This Mo</span>
+            <span className="hidden lg:inline">Joined This Month</span>
           </span>
           <span className="text-[14px] lg:text-[20px] font-bold text-[#0F172A] leading-[17px] lg:leading-[24px]">
-            {addedUsers.length.toLocaleString()}
+            {joinedThisMonth.toLocaleString()}
           </span>
         </div>
       </div>
 
       {/* Mobile Add New User Button */}
       <button 
-        onClick={() => setIsModalOpen(true)}
+        onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
         className="lg:hidden w-full h-[40px] bg-[#4F46E5] text-white rounded-[8px] text-[13px] font-semibold flex items-center justify-center gap-[8px] cursor-pointer shadow-xs"
       >
         <Plus className="w-[14px] h-[14px]" />
@@ -362,22 +292,18 @@ export default function UsersPage() {
             />
           </div>
 
-          <button className="lg:hidden w-[36px] h-[36px] flex items-center justify-center bg-white border border-[#E2E8F0] rounded-[8px] text-[#475569] shrink-0">
-            <Filter className="w-[16px] h-[16px]" />
-          </button>
+          <select
+            aria-label="Filter users by status"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="lg:hidden h-[36px] bg-white border border-[#E2E8F0] rounded-[8px] px-2 text-[12px] text-[#475569] shrink-0"
+          >
+            <option value="All">All</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
 
           <div className="hidden lg:flex items-center gap-[12px]">
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-[94px] h-[32px] px-[12px] bg-white border border-[#E2E8F0] rounded-[8px] text-[13px] font-medium text-[#475569] focus:outline-none cursor-pointer"
-            >
-              <option value="All">Role: All</option>
-              <option value="Admin">Role: Admin</option>
-              <option value="Editor">Role: Editor</option>
-              <option value="Viewer">Role: Viewer</option>
-            </select>
-
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -386,7 +312,6 @@ export default function UsersPage() {
               <option value="All">Status: All</option>
               <option value="Active">Status: Active</option>
               <option value="Inactive">Status: Inactive</option>
-              <option value="Suspended">Status: Suspended</option>
             </select>
           </div>
         </div>
@@ -412,22 +337,11 @@ export default function UsersPage() {
           </div>
 
           <div className="flex items-center gap-[12px]">
-            <select
-              value=""
-              aria-label="Change role for selected users"
-              onChange={(event) => handleBulkRoleChange(event.target.value as UserRecord['role'])}
-              className="w-[98px] h-[27px] px-[12px] bg-white border border-[#E2E8F0] rounded-[6px] text-[12px] font-semibold text-[#0F172A] cursor-pointer"
-            >
-              <option value="" disabled>Change Role</option>
-              <option value="Admin">Admin</option>
-              <option value="Editor">Editor</option>
-              <option value="Viewer">Viewer</option>
-            </select>
             <button
-              onClick={handleBulkStatusChange}
+              onClick={() => void handleBulkStatusChange()}
               className="w-[134px] h-[27px] px-[12px] bg-white border border-[#E2E8F0] rounded-[6px] text-[12px] font-semibold text-[#EF4444] hover:bg-[#FEF2F2] transition-colors cursor-pointer"
             >
-              {shouldReactivate ? 'Reactivate Accounts' : 'Suspend Accounts'}
+              {shouldReactivate ? 'Reactivate Accounts' : 'Deactivate Accounts'}
             </button>
           </div>
         </div>
@@ -442,8 +356,14 @@ export default function UsersPage() {
         ) : pageUsers.map((user) => (
           <div 
             key={user.id}
-            className="w-full h-[103px] bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] flex flex-col gap-[12px]"
+            className="relative w-full h-[103px] bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] flex flex-col gap-[12px]"
           >
+            {deletingUserId === user.id && (
+              <div role="status" className="absolute inset-0 z-10 flex items-center justify-center gap-2 rounded-[8px] bg-white/85 text-[13px] font-semibold text-[#475569]">
+                <LoaderCircle className="h-4 w-4 animate-spin text-[#4F46E5]" />
+                Deleting user and linked records…
+              </div>
+            )}
             <div className="flex items-center justify-between h-[36px]">
               <div className="flex items-center gap-[10px]">
                 <img
@@ -462,10 +382,15 @@ export default function UsersPage() {
               </div>
 
               <div className="flex items-center gap-[8px]">
-                <button className="w-[24px] h-[24px] flex items-center justify-center border border-[#E2E8F0] rounded-[12px] text-[#475569]">
+                <button onClick={() => { setEditingUser(user); setIsModalOpen(true); }} className="w-[24px] h-[24px] flex items-center justify-center border border-[#E2E8F0] rounded-[12px] text-[#475569]">
                   <Pencil className="w-[12px] h-[12px]" />
                 </button>
-                <button className="w-[24px] h-[24px] flex items-center justify-center border border-[#E2E8F0] rounded-[12px] text-[#991B1B]">
+                <button
+                  onClick={() => void handleDeleteUser(user.id)}
+                  disabled={deletingUserId !== null}
+                  aria-label={`Permanently delete ${user.name}`}
+                  className="w-[24px] h-[24px] flex items-center justify-center border border-[#E2E8F0] rounded-[12px] text-[#991B1B] disabled:cursor-not-allowed"
+                >
                   <Trash2 className="w-[12px] h-[12px]" />
                 </button>
               </div>
@@ -476,15 +401,13 @@ export default function UsersPage() {
             <div className="flex items-center justify-between h-[19px]">
               <div className="flex items-center gap-[6px]">
                 <span className="px-[8px] py-[3px] rounded-[12px] text-[11px] leading-[13px] font-semibold bg-[#DBEAFE] text-[#1E40AF]">
-                  {user.role}
+                  {user.phone ?? 'No phone'}
                 </span>
                 <span
                   className={`px-[8px] py-[3px] rounded-[12px] text-[11px] leading-[13px] font-semibold ${
                     user.status === 'Active'
                       ? 'bg-[#D1FAE5] text-[#065F46]'
-                      : user.status === 'Inactive'
-                      ? 'bg-[#FEF3C7] text-[#92400E]'
-                      : 'bg-[#FEE2E2] text-[#991B1B]'
+                      : 'bg-[#FEF3C7] text-[#92400E]'
                   }`}
                 >
                   {user.status}
@@ -492,7 +415,7 @@ export default function UsersPage() {
               </div>
 
               <span className="text-[#64748B] text-[10px] leading-[12px]">
-                Active {user.lastActive}
+                Joined {user.joinDate}
               </span>
             </div>
           </div>
@@ -537,10 +460,10 @@ export default function UsersPage() {
               />
             </div>
             <div className="w-[220px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">USER</div>
-            <div className="w-[110px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">ROLE</div>
+            <div className="w-[110px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">PHONE</div>
             <div className="w-[110px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">STATUS</div>
             <div className="w-[110px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">JOIN DATE</div>
-            <div className="w-[110px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">LAST ACTIVE</div>
+            <div className="w-[110px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter']">UPDATED</div>
             <div className="w-[80px] shrink-0 font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] text-right">ACTIONS</div>
           </div>
 
@@ -557,10 +480,10 @@ export default function UsersPage() {
               </div>
               <h4 className="text-[15px] font-bold text-[#0F172A]">No matching users found</h4>
               <p className="text-[13px] text-[#64748B]">
-                No user records match search query <strong className="text-[#4F46E5]">&quot;{searchQuery}&quot;</strong> or active role/status filters.
+                No user records match search query <strong className="text-[#4F46E5]">&quot;{searchQuery}&quot;</strong> or the selected status filter.
               </p>
               <button 
-                onClick={() => { setLocalSearch(''); setRoleFilter('All'); setStatusFilter('All'); }}
+                onClick={() => { setLocalSearch(''); setStatusFilter('All'); }}
                 className="mt-2 px-3.5 py-1.5 bg-[#4F46E5] text-white rounded-[6px] text-[12px] font-semibold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-2xs"
               >
                 Reset Search & Filters
@@ -573,10 +496,16 @@ export default function UsersPage() {
                 return (
                   <div
                     key={user.id}
-                    className={`box-border flex flex-row items-center p-[12px] gap-[16px] w-[1096px] h-[56px] border-b border-[#E2E8F0] shrink-0 transition-colors ${
+                    className={`relative box-border flex flex-row items-center p-[12px] gap-[16px] w-[1096px] h-[56px] border-b border-[#E2E8F0] shrink-0 transition-colors ${
                       isChecked ? 'bg-[#EEF2FF]/60 border-l-2 border-l-[#4F46E5]' : 'hover:bg-[#F8FAFC]'
                     }`}
                   >
+                    {deletingUserId === user.id && (
+                      <div role="status" className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-white/85 text-[13px] font-semibold text-[#475569]">
+                        <LoaderCircle className="h-4 w-4 animate-spin text-[#4F46E5]" />
+                        Deleting user and linked records…
+                      </div>
+                    )}
                     <div className="w-[32px] flex justify-center shrink-0">
                       <input
                         type="checkbox"
@@ -601,17 +530,7 @@ export default function UsersPage() {
                       </div>
                     </div>
                     <div className="w-[110px] flex items-center shrink-0">
-                      <div className={`flex flex-row items-start px-[8px] py-[2px] rounded-[4px] ${
-                        user.role === 'Admin' ? 'bg-[#EEF2FF]' :
-                        user.role === 'Editor' ? 'bg-[#DBEAFE]' : 'bg-[#F8FAFC]'
-                      }`}>
-                        <span className={`font-semibold text-[11px] leading-[13px] font-['Inter'] ${
-                          user.role === 'Admin' ? 'text-[#4F46E5]' :
-                          user.role === 'Editor' ? 'text-[#1E40AF]' : 'text-[#475569]'
-                        }`}>
-                          {user.role}
-                        </span>
-                      </div>
+                      <span className="truncate font-normal text-[12px] text-[#475569]">{user.phone ?? '—'}</span>
                     </div>
                     <div className="w-[110px] flex items-center shrink-0">
                       <div className={`flex flex-row items-start px-[8px] py-[4px] rounded-[12px] ${
@@ -633,14 +552,19 @@ export default function UsersPage() {
                     </div>
                     <div className="w-[110px] shrink-0 flex items-center">
                       <span className="font-normal text-[13px] leading-[16px] text-[#475569] font-['Inter']">
-                        {user.lastActive}
+                        {user.updatedAt}
                       </span>
                     </div>
                     <div className="w-[80px] shrink-0 flex flex-row justify-end items-center gap-[12px]">
-                      <button className="flex items-center justify-center w-[16px] h-[16px] p-0 border-none bg-transparent cursor-pointer hover:opacity-80">
+                      <button onClick={() => { setEditingUser(user); setIsModalOpen(true); setActionError(null); }} className="flex items-center justify-center w-[16px] h-[16px] p-0 border-none bg-transparent cursor-pointer hover:opacity-80">
                         <Pencil className="w-[16px] h-[16px] text-[#475569]" />
                       </button>
-                      <button className="flex items-center justify-center w-[16px] h-[16px] p-0 border-none bg-transparent cursor-pointer hover:opacity-80">
+                      <button
+                        onClick={() => void handleDeleteUser(user.id)}
+                        disabled={deletingUserId !== null}
+                        aria-label={`Permanently delete ${user.name}`}
+                        className="flex items-center justify-center w-[16px] h-[16px] p-0 border-none bg-transparent cursor-pointer hover:opacity-80 disabled:cursor-not-allowed"
+                      >
                         <Trash2 className="w-[16px] h-[16px] text-[#EF4444]" />
                       </button>
                     </div>
@@ -678,8 +602,9 @@ export default function UsersPage() {
       {/* Add User Interactive Modal */}
       <AddUserModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAddUser={handleAddUser}
+        onClose={() => { setIsModalOpen(false); setEditingUser(null); }}
+        onAddUser={handleSaveUser}
+        initialUser={editingUser}
       />
     </div>
   );

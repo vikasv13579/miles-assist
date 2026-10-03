@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/lib/store/store';
 import { setSearchQuery } from '@/lib/store/uiSlice';
@@ -16,11 +16,20 @@ import UsersPage from '@/components/UsersPage';
 import TransactionsPage from '@/components/TransactionsPage';
 import BookingsPage from '@/components/BookingsPage';
 import UserDetailPage from '@/components/UserDetailPage';
+import DashboardAnalytics from '@/components/DashboardAnalytics';
+import DashboardReports from '@/components/DashboardReports';
+import DashboardSettings from '@/components/DashboardSettings';
 
 export default function Home() {
   const dispatch = useDispatch();
   const activeNav = useSelector((state: RootState) => state.ui.activeNav);
+  const activeTab = useSelector((state: RootState) => state.ui.activeTab);
   const searchQuery = useSelector((state: RootState) => state.ui.searchQuery);
+  const [adminEmail, setAdminEmail] = useState('');
+
+  useEffect(() => {
+    setAdminEmail(localStorage.getItem('admin_email') ?? '');
+  }, []);
 
   return (
     <main className="w-full max-w-[1200px] p-4 lg:p-[32px] pb-[96px] lg:pb-[32px] flex flex-col gap-4 lg:gap-[24px] mx-auto font-sans">
@@ -53,37 +62,47 @@ export default function Home() {
       ) : activeNav === 'profile' ? (
         <UserDetailPage />
       ) : (
-        <div className="w-full max-w-[1136px] flex flex-col gap-4 lg:gap-[24px] mx-auto">
+        <div className="w-full min-w-0 max-w-[1136px] flex flex-col gap-4 lg:gap-[24px] mx-auto">
           {/* Mobile Greetings Header (Mobile width 358px, height 39px) */}
           <div className="lg:hidden w-full max-w-[358px] flex flex-col justify-center gap-[2px]">
             <h1 className="text-[18px] font-bold leading-[100%] text-[#0F172A] font-sans">
-              Welcome back, Sarah
+              Welcome back{adminEmail ? `, ${adminEmail.split('@')[0]}` : ''}
             </h1>
             <span className="text-[12px] font-normal leading-[100%] text-[#64748B] font-sans">
-              Tuesday, October 1, 2024
+              {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </span>
           </div>
 
           {/* Navigation Tabs */}
           <Tabs />
 
-          {/* KPI Cards Row Frame */}
-          <KPIRow />
+          {activeTab === 'Analytics' ? (
+            <DashboardAnalytics />
+          ) : activeTab === 'Reports' ? (
+            <DashboardReports />
+          ) : activeTab === 'Settings' ? (
+            <DashboardSettings />
+          ) : (
+            <>
+              {/* KPI Cards Row Frame */}
+              <KPIRow />
 
-          {/* Main Layout Grid Frame */}
-          <div className="w-full lg:w-[1136px] flex flex-col lg:flex-row gap-4 lg:gap-[24px]">
-            {/* LEFT COLUMN */}
-            <div className="w-full lg:w-[752px] flex flex-col gap-4 lg:gap-[24px]">
-              <RevenueChart />
-              <TransactionsTable />
-            </div>
+              {/* Main Layout Grid Frame */}
+              <div className="w-full min-w-0 flex flex-col gap-4 min-[1440px]:flex-row min-[1440px]:gap-[24px]">
+                {/* LEFT COLUMN */}
+                <div className="flex w-full min-w-0 flex-col gap-4 min-[1440px]:w-[752px] min-[1440px]:gap-[24px]">
+                  <RevenueChart />
+                  <TransactionsTable />
+                </div>
 
-            {/* RIGHT COLUMN */}
-            <div className="w-full lg:w-[360px] flex flex-col gap-4 lg:gap-[24px] shrink-0">
-              <SystemAlerts />
-              <SystemHealth />
-            </div>
-          </div>
+                {/* RIGHT COLUMN */}
+                <div className="flex w-full min-w-0 flex-col gap-4 min-[1440px]:w-[360px] min-[1440px]:shrink-0 min-[1440px]:gap-[24px]">
+                  <SystemAlerts />
+                  <SystemHealth />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 

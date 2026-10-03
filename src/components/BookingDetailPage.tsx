@@ -1,43 +1,99 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   Calendar, 
   XCircle, 
   ArrowLeft, 
   CheckCircle2, 
-  Video, 
-  ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
+import { fetchBookingById, updateBooking } from '@/lib/api';
 
 interface BookingDetailPageProps {
   bookingId?: string;
   bookingDateTime?: string;
-  onReschedule?: (dateTime: string) => void;
   onBack?: () => void;
 }
 
 export default function BookingDetailPage({
-  bookingId = '#BKG-2341',
-  bookingDateTime = 'Oct 15, 2024 14:00',
-  onReschedule,
+  bookingId,
+  bookingDateTime,
   onBack
 }: BookingDetailPageProps) {
-  const [isCancelled, setIsCancelled] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: booking, isLoading, isError, error } = useQuery({
+    queryKey: ['booking', bookingId],
+    queryFn: () => fetchBookingById(bookingId ?? ''),
+    enabled: Boolean(bookingId),
+  });
+  const [bookingDateValue, setBookingDateValue] = useState('');
   const [showRescheduleForm, setShowRescheduleForm] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState(bookingDateTime);
-  const [rescheduleValue, setRescheduleValue] = useState(bookingDateTime);
+  const [rescheduleValue, setRescheduleValue] = useState('');
+  const rescheduleMutation = useMutation({
+    mutationFn: (date: string) => updateBooking(booking!.id, { bookingDate: new Date(date).toISOString() }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['booking', bookingId] }),
+        queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }),
+      ]);
+      setShowRescheduleForm(false);
+    },
+  });
+  const statusMutation = useMutation({
+    mutationFn: (status: 'CANCELLED' | 'CONFIRMED') => updateBooking(booking!.id, { status }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['booking', bookingId] }),
+        queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+      ]);
+    },
+  });
+
+  useEffect(() => {
+    const value = bookingDateTime ?? booking?.bookingDate;
+    if (!value) return;
+    const date = new Date(value);
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    setBookingDateValue(localDate);
+    setRescheduleValue(localDate);
+  }, [booking?.bookingDate, bookingDateTime]);
 
   const handleReschedule = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setScheduledAt(rescheduleValue);
-    onReschedule?.(rescheduleValue);
-    setShowRescheduleForm(false);
+    rescheduleMutation.mutate(rescheduleValue);
   };
+
+  if (isLoading) return <div className="w-full rounded-[8px] border border-[#E2E8F0] bg-white p-6 text-[13px] text-[#64748B]">Loading booking…</div>;
+  if (!bookingId || isError || !booking) {
+    return <div role="alert" className="w-full rounded-[8px] border border-[#FCA5A5] bg-[#FEF2F2] p-4 text-[13px] text-[#991B1B]">{isError ? (error instanceof Error ? error.message : 'Could not load booking.') : 'Booking ID is required.'}{onBack && <button onClick={onBack} className="ml-3 font-semibold underline">Back</button>}</div>;
+  }
+
+  const isCancelled = booking.status === 'CANCELLED';
+  const displayId = booking.reference;
+  const customerName = booking.user?.name ?? booking.userId;
+  const customerEmail = booking.user?.email ?? '—';
+  const customerInitials = customerName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('');
+  const formattedStatus = booking.status.charAt(0) + booking.status.slice(1).toLowerCase();
+  const formattedDate = new Date(booking.bookingDate).toLocaleString();
+  const formattedTime = new Date(booking.bookingDate).toLocaleTimeString();
 
   return (
     <div className="w-full flex flex-col items-center">
+      {(statusMutation.isError || rescheduleMutation.isError) && (
+        <div role="alert" className="mb-3 w-full rounded-[8px] border border-[#FCA5A5] bg-[#FEF2F2] p-3 text-[13px] text-[#991B1B]">
+          {(statusMutation.error ?? rescheduleMutation.error) instanceof Error
+            ? (statusMutation.error ?? rescheduleMutation.error)?.message
+            : 'Could not update booking.'}
+        </div>
+      )}
       {/* MOBILE VIEW */}
       <div className="flex lg:hidden flex-col w-[390px] mx-auto bg-[#F8FAFC] min-h-[844px] pb-[64px] font-sans">
         {/* top-nav */}
@@ -61,8 +117,8 @@ export default function BookingDetailPage({
         <div className="flex flex-col p-[16px] gap-[16px] w-[390px] box-border">
           {/* status-header-card */}
           <div className="flex flex-col items-center p-[20px] gap-[12px] w-[358px] bg-white border border-[#E2E8F0] rounded-[8px] box-border">
-            <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">{bookingId}</span>
-            <h2 className="text-[20px] leading-[24px] font-bold text-[#0F172A] text-center w-full">Business Consultation</h2>
+            <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">{displayId}</span>
+            <h2 className="text-[20px] leading-[24px] font-bold text-[#0F172A] text-center w-full">{displayId}</h2>
             <div className="flex flex-row items-center gap-[8px]">
               {isCancelled ? (
                 <div className="flex px-[10px] py-[4px] bg-[#FEE2E2] rounded-[12px]">
@@ -70,11 +126,8 @@ export default function BookingDetailPage({
                 </div>
               ) : (
                 <>
-                  <div className="flex px-[10px] py-[4px] bg-[#D1FAE5] rounded-[12px]">
-                    <span className="text-[11px] leading-[13px] font-bold text-[#065F46]">Active</span>
-                  </div>
                   <div className="flex px-[10px] py-[4px] bg-[#EEF2FF] rounded-[12px]">
-                    <span className="text-[11px] leading-[13px] font-bold text-[#4F46E5]">Completed</span>
+                    <span className="text-[11px] leading-[13px] font-bold text-[#4F46E5]">{formattedStatus}</span>
                   </div>
                 </>
               )}
@@ -99,16 +152,17 @@ export default function BookingDetailPage({
             ) : (
               <div className="flex flex-row gap-[12px] w-[318px] box-border">
                 <button 
-                  onClick={() => { setRescheduleValue(scheduledAt); setShowRescheduleForm(true); }} 
+                  onClick={() => { setRescheduleValue(bookingDateValue); setShowRescheduleForm(true); }}
                   className="flex-1 h-[41px] bg-[#4F46E5] rounded-[8px] flex items-center justify-center text-[14px] leading-[17px] font-semibold text-white"
                 >
                   Reschedule
                 </button>
                 <button 
-                  onClick={() => setIsCancelled(!isCancelled)}
+                  onClick={() => statusMutation.mutate('CANCELLED')}
+                  disabled={statusMutation.isPending || isCancelled}
                   className="flex-1 h-[41px] border border-[#991B1B] rounded-[8px] flex items-center justify-center text-[14px] leading-[17px] font-semibold text-[#991B1B] box-border bg-white"
                 >
-                  {isCancelled ? 'Reactivate' : 'Cancel Booking'}
+                  {isCancelled ? 'Cancelled' : 'Cancel Booking'}
                 </button>
               </div>
             )}
@@ -120,27 +174,27 @@ export default function BookingDetailPage({
             <div className="flex flex-col gap-[12px] w-full">
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Service</span>
-                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">Business Consult</span>
+                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">—</span>
               </div>
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Date</span>
-                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">{scheduledAt.split(' ')[0] + ' ' + scheduledAt.split(' ')[1] + ' ' + scheduledAt.split(' ')[2]}</span>
+                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">{new Date(booking.bookingDate).toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Time</span>
-                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">2:00 PM - 3:30 PM</span>
+                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">{formattedTime}</span>
               </div>
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Format</span>
-                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">Virtual Meeting</span>
+                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">—</span>
               </div>
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Location</span>
-                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A] truncate max-w-[175px]">Zoom Link Provided</span>
+                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A] truncate max-w-[175px]">—</span>
               </div>
               <div className="flex justify-between items-start">
-                <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Notes</span>
-                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A] w-[224px] text-right">Need assistance with expanding our payment gateway.</span>
+                <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Reference</span>
+                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A] w-[224px] text-right">{booking.reference}</span>
               </div>
             </div>
           </div>
@@ -151,19 +205,19 @@ export default function BookingDetailPage({
             <div className="flex flex-col gap-[12px] w-full">
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Name</span>
-                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Sarah Johnson</span>
+                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">{customerName}</span>
               </div>
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Email</span>
-                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">sarah.johnson@example.com</span>
+                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">{customerEmail}</span>
               </div>
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Phone</span>
-                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">+1 234 567 8900</span>
+                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">—</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Total Bookings</span>
-                <span className="text-[13px] leading-[16px] font-semibold text-[#4F46E5]">12 Completed Bookings</span>
+                <span className="text-[13px] leading-[16px] font-semibold text-[#4F46E5]">—</span>
               </div>
             </div>
           </div>
@@ -174,19 +228,19 @@ export default function BookingDetailPage({
             <div className="flex flex-col gap-[12px] w-full">
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Amount</span>
-                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">$180.00</span>
+                <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">—</span>
               </div>
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Payment Status</span>
-                <span className="text-[13px] leading-[16px] font-semibold text-[#065F46]">Paid</span>
+                <span className="text-[13px] leading-[16px] font-semibold text-[#64748B]">—</span>
               </div>
               <div className="flex justify-between items-center pb-[10px] border-b border-[#E2E8F0]">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Invoice</span>
-                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">#INV-10294</span>
+                <span className="text-[13px] leading-[16px] font-medium text-[#0F172A]">—</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">Action</span>
-                <span className="text-[13px] leading-[16px] font-medium text-[#4F46E5]">View Invoice</span>
+                <span className="text-[13px] leading-[16px] font-medium text-[#64748B]">—</span>
               </div>
             </div>
           </div>
@@ -204,9 +258,9 @@ export default function BookingDetailPage({
                   <div className="w-[10px] h-[10px] bg-[#4F46E5] rounded-full" />
                 </div>
                 <div className="flex flex-col gap-[2px] w-[304px]">
-                  <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Confirmation Sent</span>
-                  <span className="text-[12px] leading-[15px] font-normal text-[#64748B]">Outlook invite dispatched</span>
-                  <span className="text-[11px] leading-[13px] font-normal text-[#94A3B8]">Oct 12, 10:00</span>
+                  <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Booking created</span>
+                  <span className="text-[12px] leading-[15px] font-normal text-[#64748B]">Created in the backend</span>
+                  <span className="text-[11px] leading-[13px] font-normal text-[#94A3B8]">{new Date(booking.createdAt).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -216,103 +270,90 @@ export default function BookingDetailPage({
                   <div className="w-[10px] h-[10px] bg-[#065F46] rounded-full" />
                 </div>
                 <div className="flex flex-col gap-[2px] w-[304px]">
-                  <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Status Set to Confirmed</span>
-                  <span className="text-[12px] leading-[15px] font-normal text-[#64748B]">Consultant assigned automatically</span>
-                  <span className="text-[11px] leading-[13px] font-normal text-[#94A3B8]">Oct 12, 09:30</span>
+                  <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Last updated</span>
+                  <span className="text-[12px] leading-[15px] font-normal text-[#64748B]">Current status: {formattedStatus}</span>
+                  <span className="text-[11px] leading-[13px] font-normal text-[#94A3B8]">{new Date(booking.updatedAt).toLocaleString()}</span>
                 </div>
               </div>
 
-              {/* Step 3 */}
-              <div className="flex flex-row items-start gap-[12px] w-full relative">
-                <div className="flex flex-col items-center w-[10px] z-10 pt-[3px]">
-                  <div className="w-[10px] h-[10px] bg-[#4F46E5] rounded-full" />
-                </div>
-                <div className="flex flex-col gap-[2px] w-[304px]">
-                  <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">Booking Created</span>
-                  <span className="text-[12px] leading-[15px] font-normal text-[#64748B]">Client self-service reservation</span>
-                  <span className="text-[11px] leading-[13px] font-normal text-[#94A3B8]">Oct 12, 09:28</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* DESKTOP VIEW */}
-      <div className="hidden lg:flex w-[1136px] flex-col gap-[24px] mx-auto font-sans pt-[32px]">
+      <div className="hidden lg:flex w-full min-w-0 flex-col gap-[24px] mx-auto font-sans">
       {/* 1. BREADCRUMB FRAME (Width: 1136px, Height: 16px) */}
-      <div className="w-[1136px] h-[16px] flex items-center gap-[8px]">
+      <div className="flex min-h-[16px] w-full min-w-0 flex-wrap items-center gap-2">
         {onBack ? (
           <button 
             onClick={onBack}
-            className="w-[58px] h-[16px] flex items-center text-[13px] leading-[16px] font-medium text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+            className="flex h-4 shrink-0 items-center whitespace-nowrap text-[13px] leading-4 font-medium text-[#64748B] hover:text-[#0F172A] cursor-pointer"
           >
             Bookings
           </button>
         ) : (
           <Link 
             href="/bookings"
-            className="w-[58px] h-[16px] flex items-center text-[13px] leading-[16px] font-medium text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+            className="flex h-4 shrink-0 items-center whitespace-nowrap text-[13px] leading-4 font-medium text-[#64748B] hover:text-[#0F172A] cursor-pointer"
           >
             Bookings
           </Link>
         )}
-        <span className="w-[5px] h-[16px] text-[13px] leading-[16px] font-normal text-[#94A3B8]">/</span>
-        <span className="w-[73px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A]">{bookingId}</span>
+        <span className="h-4 shrink-0 text-[13px] leading-4 font-normal text-[#94A3B8]">/</span>
+        <span className="shrink-0 whitespace-nowrap text-[13px] leading-4 font-semibold text-[#0F172A]">{displayId}</span>
       </div>
 
       {/* 2. BOOKING HERO BANNER CARD */}
-      <div className="box-border w-[1136px] h-[98px] bg-white border border-[#E2E8F0] rounded-[8px] p-[24px] flex items-center justify-between">
-        <div className="w-[495px] h-[50px] flex items-center gap-[20px]">
-          <div className="w-[48px] h-[48px] bg-[#EEF2FF] rounded-[24px] flex items-center justify-center shrink-0">
+      <div className="box-border flex min-h-[98px] w-full min-w-0 flex-wrap items-center justify-between gap-4 rounded-[8px] border border-[#E2E8F0] bg-white p-4 sm:p-6">
+        <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#EEF2FF]">
             <Calendar className="w-[24px] h-[24px] text-[#4F46E5]" />
           </div>
-          <div className="w-[427px] h-[50px] flex flex-col gap-[6px]">
-            <div className="w-[389px] h-[27px] flex items-center gap-[12px]">
-              <h1 className="w-[217px] h-[27px] text-[22px] leading-[27px] font-bold text-[#0F172A]">
-                Booking {bookingId}
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <h1 className="min-w-0 break-words text-[20px] leading-[26px] font-bold text-[#0F172A] sm:text-[22px] sm:leading-[27px]">
+                Booking {displayId}
               </h1>
-              {isCancelled ? (
-                <div className="w-[75px] h-[21px] flex items-start px-[8px] py-[4px] bg-[#FEE2E2] rounded-[12px]">
-                  <span className="w-[59px] h-[13px] text-[11px] leading-[13px] font-semibold text-[#991B1B]">Cancelled</span>
-                </div>
-              ) : (
-                <>
-                  <div className="w-[73px] h-[21px] flex items-start px-[8px] py-[4px] bg-[#D1FAE5] rounded-[12px]">
-                    <span className="w-[57px] h-[13px] text-[11px] leading-[13px] font-semibold text-[#065F46]">Confirmed</span>
-                  </div>
-                  <div className="w-[75px] h-[21px] flex items-start px-[8px] py-[4px] bg-[#DBEAFE] rounded-[12px]">
-                    <span className="w-[59px] h-[13px] text-[11px] leading-[13px] font-semibold text-[#1E40AF]">Completed</span>
-                  </div>
-                </>
-              )}
+              <span className={`shrink-0 rounded-xl px-2 py-1 text-[11px] leading-[13px] font-semibold ${
+                isCancelled
+                  ? 'bg-[#FEE2E2] text-[#991B1B]'
+                  : booking.status === 'COMPLETED'
+                    ? 'bg-[#DBEAFE] text-[#1E40AF]'
+                    : booking.status === 'PENDING'
+                      ? 'bg-[#FEF3C7] text-[#92400E]'
+                      : 'bg-[#D1FAE5] text-[#065F46]'
+              }`}>
+                {formattedStatus}
+              </span>
             </div>
-            <p className="w-[427px] h-[17px] text-[14px] leading-[17px] font-normal text-[#64748B]">
-              Virtual Consultation Room • Scheduled for Oct 15, 2024 at 14:00
+            <p className="m-0 break-words text-[14px] leading-[17px] font-normal text-[#64748B]">
+              Scheduled for {formattedDate}
             </p>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="w-[284px] h-[37px] flex items-start gap-[12px]">
+        <div className="flex w-full shrink-0 flex-wrap items-center gap-3 sm:w-auto">
           <button 
-            onClick={() => { setRescheduleValue(scheduledAt); setShowRescheduleForm((open) => !open); }} 
-            className="box-border w-[134px] h-[37px] flex items-center px-[16px] py-[10px] gap-[8px] border border-[#E2E8F0] rounded-[8px] cursor-pointer hover:bg-[#F8FAFC]"
+            onClick={() => { setRescheduleValue(bookingDateValue); setShowRescheduleForm((open) => !open); }}
+            className="box-border flex h-[37px] shrink-0 items-center gap-2 rounded-[8px] border border-[#E2E8F0] px-4 py-2.5 cursor-pointer hover:bg-[#F8FAFC]"
           >
-            <Calendar className="w-[14px] h-[14px] text-[#475569]" />
-            <span className="w-[80px] h-[17px] text-[14px] leading-[17px] font-semibold text-[#475569]">Reschedule</span>
+            <Calendar className="h-[14px] w-[14px] shrink-0 text-[#475569]" />
+            <span className="whitespace-nowrap text-[14px] leading-[17px] font-semibold text-[#475569]">Reschedule</span>
           </button>
           <button 
-            onClick={() => setIsCancelled(!isCancelled)}
-            className="w-[138px] h-[37px] flex items-center px-[16px] py-[10px] gap-[8px] bg-[#FEE2E2] rounded-[8px] cursor-pointer hover:bg-[#FCA5A5]"
+            onClick={() => statusMutation.mutate(isCancelled ? 'CONFIRMED' : 'CANCELLED')}
+            disabled={statusMutation.isPending}
+            className="flex h-[37px] shrink-0 items-center rounded-[8px] bg-[#FEE2E2] px-4 py-2.5 cursor-pointer hover:bg-[#FCA5A5] disabled:cursor-wait disabled:opacity-60"
           >
-            <span className="w-[106px] h-[17px] text-[14px] leading-[17px] font-semibold text-[#991B1B]">{isCancelled ? 'Reactivate' : 'Cancel Booking'}</span>
+            <span className="whitespace-nowrap text-[14px] leading-[17px] font-semibold text-[#991B1B]">{isCancelled ? 'Reactivate' : 'Cancel Booking'}</span>
           </button>
         </div>
       </div>
 
       {showRescheduleForm && (
-        <form onSubmit={handleReschedule} className="w-[1136px] flex flex-col gap-3 rounded-[8px] border border-[#E2E8F0] bg-white p-4 sm:flex-row sm:items-end">
+        <form onSubmit={handleReschedule} className="flex w-full min-w-0 flex-col gap-3 rounded-[8px] border border-[#E2E8F0] bg-white p-4 sm:flex-row sm:items-end">
           <label className="flex flex-1 flex-col gap-1 text-[12px] font-semibold text-[#475569]">
             New date and time
             <input
@@ -337,26 +378,24 @@ export default function BookingDetailPage({
             <h2 className="w-[208px] h-[19px] text-[16px] leading-[19px] font-bold text-[#0F172A]">Booking Meeting Logistics</h2>
             <div className="w-[672px] h-[186px] flex flex-col gap-[12px]">
               <div className="box-border w-[672px] h-[24px] border-b border-[#E2E8F0] pb-[8px] flex items-center justify-between">
-                <span className="w-[80px] h-[16px] text-[13px] leading-[16px] font-normal text-[#64748B]">Service Type</span>
-                <span className="w-[141px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] text-right">Business Consultation</span>
+                <span className="w-[80px] h-[16px] text-[13px] leading-[16px] font-normal text-[#64748B]">Reference</span>
+                <span className="w-[141px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] text-right">{displayId}</span>
               </div>
               <div className="box-border w-[672px] h-[24px] border-b border-[#E2E8F0] pb-[8px] flex items-center justify-between">
                 <span className="w-[98px] h-[16px] text-[13px] leading-[16px] font-normal text-[#64748B]">Scheduled Date</span>
-                <span className="w-[109px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] text-right">October 15, 2024</span>
+                <span className="w-[109px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] text-right">{new Date(booking.bookingDate).toLocaleDateString()}</span>
               </div>
               <div className="box-border w-[672px] h-[24px] border-b border-[#E2E8F0] pb-[8px] flex items-center justify-between">
                 <span className="w-[112px] h-[16px] text-[13px] leading-[16px] font-normal text-[#64748B]">Meeting Time Slot</span>
-                <span className="w-[157px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] text-right">2:00 PM - 3:30 PM (EST)</span>
+                <span className="w-[157px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] text-right">{formattedTime}</span>
               </div>
               <div className="box-border w-[672px] h-[24px] border-b border-[#E2E8F0] pb-[8px] flex items-center justify-between">
                 <span className="w-[107px] h-[16px] text-[13px] leading-[16px] font-normal text-[#64748B]">Meeting Location</span>
-                <span className="w-[179px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#4F46E5] text-right">Virtual - Zoom Link Provided</span>
+                <span className="w-[179px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#4F46E5] text-right">—</span>
               </div>
               <div className="w-[672px] h-[42px] flex flex-col gap-[4px] pt-[4px]">
                 <span className="w-[124px] h-[16px] text-[13px] leading-[16px] font-normal text-[#64748B]">Client Special Notes</span>
-                <p className="w-[672px] h-[18px] text-[13px] leading-[18px] font-normal text-[#475569]">
-                  "Need assistance with expanding our payment gateway options and preparing our database backup plans."
-                </p>
+                <p className="w-[672px] h-[18px] text-[13px] leading-[18px] font-normal text-[#475569]">—</p>
               </div>
             </div>
           </div>
@@ -366,20 +405,18 @@ export default function BookingDetailPage({
             <h2 className="w-[157px] h-[19px] text-[16px] leading-[19px] font-bold text-[#0F172A]">Customer Overview</h2>
             <div className="w-[672px] h-[40px] flex items-center justify-between">
               <div className="w-[204px] h-[40px] flex items-center gap-[12px]">
-                <img
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80"
-                  alt="Sarah Johnson"
-                  className="w-[40px] h-[40px] rounded-[20px] object-cover shrink-0"
-                />
+                <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-[#E0E7FF] text-[13px] font-semibold text-[#4338CA]">
+                  {customerInitials}
+                </div>
                 <div className="w-[152px] h-[31px] flex flex-col gap-[2px]">
-                  <span className="w-[94px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A]">Sarah Johnson</span>
+                  <span className="w-[180px] truncate h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A]">{customerName}</span>
                   <span className="w-[152px] h-[13px] text-[11px] leading-[13px] font-normal text-[#64748B]">
-                    sarah.johnson@example.com
+                    {customerEmail}
                   </span>
                 </div>
               </div>
               <span className="w-[166px] h-[15px] text-[12px] leading-[15px] font-normal text-[#475569]">
-                12 Total Bookings Completed
+                {customerEmail}
               </span>
             </div>
           </div>
@@ -393,18 +430,18 @@ export default function BookingDetailPage({
             <div className="w-[360px] h-[77px] flex flex-col gap-[12px]">
               <div className="w-[360px] h-[16px] flex items-center justify-between">
                 <span className="w-[88px] h-[16px] text-[13px] leading-[16px] font-normal text-[#64748B]">Billing Amount</span>
-                <span className="w-[53px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] text-right">$180.00</span>
+                <span className="w-[53px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#0F172A] text-right">—</span>
               </div>
               <div className="w-[360px] h-[21px] flex items-center justify-between">
                 <span className="w-[97px] h-[16px] text-[13px] leading-[16px] font-normal text-[#64748B]">Payment Status</span>
-                <div className="w-[40px] h-[21px] flex items-start px-[8px] py-[4px] bg-[#D1FAE5] rounded-[12px]">
-                  <span className="w-[24px] h-[13px] text-[11px] leading-[13px] font-semibold text-[#065F46]">Paid</span>
+                <div className="w-[40px] h-[21px] flex items-start px-[8px] py-[4px] bg-[#F1F5F9] rounded-[12px]">
+                  <span className="w-[24px] h-[13px] text-[11px] leading-[13px] font-semibold text-[#64748B]">—</span>
                 </div>
               </div>
               <div className="w-[360px] h-[16px] flex items-center justify-between">
                 <span className="w-[73px] h-[16px] text-[13px] leading-[16px] font-normal text-[#64748B]">Invoice Link</span>
                 <span className="w-[77px] h-[16px] text-[13px] leading-[16px] font-semibold text-[#4F46E5] text-right hover:underline cursor-pointer">
-                  #INV-10294
+                  —
                 </span>
               </div>
             </div>
@@ -420,9 +457,9 @@ export default function BookingDetailPage({
                   <CheckCircle2 className="w-[12px] h-[12px] text-[#10B981]" />
                 </div>
                 <div className="w-[328px] h-[42px] flex flex-col gap-[1px]">
-                  <span className="w-[106px] h-[15px] text-[12px] leading-[15px] font-semibold text-[#0F172A]">Confirmation Sent</span>
-                  <span className="w-[133px] h-[13px] text-[11px] leading-[13px] font-normal text-[#475569]">Outlook invite dispatched</span>
-                  <span className="w-[63px] h-[12px] text-[10px] leading-[12px] font-normal text-[#64748B]">Oct 12, 10:00</span>
+                  <span className="w-[106px] h-[15px] text-[12px] leading-[15px] font-semibold text-[#0F172A]">Booking created</span>
+                  <span className="w-[133px] h-[13px] text-[11px] leading-[13px] font-normal text-[#475569]">Created in the backend</span>
+                  <span className="w-[63px] h-[12px] text-[10px] leading-[12px] font-normal text-[#64748B]">{new Date(booking.createdAt).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -432,23 +469,12 @@ export default function BookingDetailPage({
                   <CheckCircle2 className="w-[12px] h-[12px] text-[#10B981]" />
                 </div>
                 <div className="w-[328px] h-[42px] flex flex-col gap-[1px]">
-                  <span className="w-[140px] h-[15px] text-[12px] leading-[15px] font-semibold text-[#0F172A]">Status Set to Confirmed</span>
-                  <span className="w-[179px] h-[13px] text-[11px] leading-[13px] font-normal text-[#475569]">Consultant assigned automatically</span>
-                  <span className="w-[64px] h-[12px] text-[10px] leading-[12px] font-normal text-[#64748B]">Oct 12, 09:30</span>
+                  <span className="w-[140px] h-[15px] text-[12px] leading-[15px] font-semibold text-[#0F172A]">Last updated</span>
+                  <span className="w-[179px] h-[13px] text-[11px] leading-[13px] font-normal text-[#475569]">Current status: {formattedStatus}</span>
+                  <span className="w-[64px] h-[12px] text-[10px] leading-[12px] font-normal text-[#64748B]">{new Date(booking.updatedAt).toLocaleString()}</span>
                 </div>
               </div>
 
-              {/* Step 3 */}
-              <div className="w-[360px] h-[42px] flex items-start gap-[12px]">
-                <div className="w-[20px] h-[20px] bg-[#D1FAE5] rounded-[10px] flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-[12px] h-[12px] text-[#10B981]" />
-                </div>
-                <div className="w-[328px] h-[42px] flex flex-col gap-[1px]">
-                  <span className="w-[97px] h-[15px] text-[12px] leading-[15px] font-semibold text-[#0F172A]">Booking Created</span>
-                  <span className="w-[156px] h-[13px] text-[11px] leading-[13px] font-normal text-[#475569]">Client self-service reservation</span>
-                  <span className="w-[64px] h-[12px] text-[10px] leading-[12px] font-normal text-[#64748B]">Oct 12, 09:28</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>

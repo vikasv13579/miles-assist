@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store/store';
 import {
@@ -11,136 +12,70 @@ import {
   Calendar,
   Eye,
   Pencil,
-  TrendingUp,
   TrendingDown,
   AlertTriangle,
   ArrowLeft
 } from 'lucide-react';
-import { fetchUsers, fetchBookings, ApiUser, ApiTodo } from '@/lib/api';
-import BookingDetailPage from './BookingDetailPage';
+import { ApiBooking, BookingStatus, createBooking, fetchUsers, fetchBookings, updateBooking } from '@/lib/api';
 import { SkeletonRows } from '@/components/Skeleton';
 
 interface BookingRecord {
   id: string;
+  reference: string;
+  userId: string;
+  bookingDate: string;
   customerName: string;
   avatar: string;
   service: string;
   dateTime: string;
   duration: string;
-  status: 'Confirmed' | 'Completed' | 'Pending' | 'Cancelled';
+  status: BookingStatus;
   amount: string;
 }
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 8;
 
-const defaultBookings: BookingRecord[] = [
-  {
-    id: '#BKG-2341',
-    customerName: 'Sarah Johnson',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-    service: 'Business Consultation',
-    dateTime: 'Oct 15, 2024 14:00',
-    duration: '1.5 hrs',
-    status: 'Confirmed',
-    amount: '$180.00',
-  },
-  {
-    id: '#BKG-2340',
-    customerName: 'Michael Brown',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-    service: 'Technical Support',
-    dateTime: 'Oct 14, 2024 10:00',
-    duration: '1.0 hr',
-    status: 'Completed',
-    amount: '$120.00',
-  },
-  {
-    id: '#BKG-2339',
-    customerName: 'Emily Davis',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    service: 'Executive Coaching',
-    dateTime: 'Oct 13, 2024 16:30',
-    duration: '2.0 hrs',
-    status: 'Pending',
-    amount: '$250.00',
-  },
-  {
-    id: '#BKG-2338',
-    customerName: 'David Wilson',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80',
-    service: 'Strategy Session',
-    dateTime: 'Oct 12, 2024 11:30',
-    duration: '1.5 hrs',
-    status: 'Cancelled',
-    amount: '$180.00',
-  },
-  {
-    id: '#BKG-2337',
-    customerName: 'Emma Jones',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
-    service: 'Personal Training',
-    dateTime: 'Oct 11, 2024 09:00',
-    duration: '1.0 hr',
-    status: 'Completed',
-    amount: '$95.00',
-  },
-  {
-    id: '#BKG-2336',
-    customerName: 'Robert Taylor',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    service: 'Business Consultation',
-    dateTime: 'Oct 10, 2024 15:00',
-    duration: '1.5 hrs',
-    status: 'Confirmed',
-    amount: '$180.00',
-  },
-  {
-    id: '#BKG-2335',
-    customerName: 'Clara Martin',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
-    service: 'Technical Support',
-    dateTime: 'Oct 09, 2024 13:00',
-    duration: '1.0 hr',
-    status: 'Completed',
-    amount: '$120.00',
-  },
-  {
-    id: '#BKG-2334',
-    customerName: 'Joseph Thomas',
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&auto=format&fit=crop&q=80',
-    service: 'Executive Coaching',
-    dateTime: 'Oct 08, 2024 10:30',
-    duration: '2.0 hrs',
-    status: 'Confirmed',
-    amount: '$250.00',
-  },
-];
+const formatStatus = (status: string) =>
+  status.charAt(0) + status.slice(1).toLowerCase();
 
 export default function BookingsPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const globalSearchQuery = useSelector((state: RootState) => state.ui.searchQuery);
   const [localSearch, setLocalSearch] = useState('');
   const [pagination, setPagination] = useState({ filterKey: '', page: 1 });
   const [statusFilter, setStatusFilter] = useState('All');
   const [serviceFilter, setServiceFilter] = useState('All');
-  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [showNewBookingModal, setShowNewBookingModal] = useState(false);
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
-  const [customBookings, setCustomBookings] = useState<BookingRecord[]>([]);
-  const [bookingOverrides, setBookingOverrides] = useState<Record<string, Partial<BookingRecord>>>({});
   const [newBookingData, setNewBookingData] = useState<{
-    customerName: string;
-    service: string;
-    dateTime: string;
-    duration: string;
-    amount: string;
-    status: BookingRecord['status'];
-  }>({
-    customerName: '',
-    service: 'Business Consultation',
-    dateTime: 'Oct 16, 2024 10:00',
-    duration: '1.5 hrs',
-    amount: '$180.00',
-    status: 'Confirmed' as const,
+    userId: string;
+    bookingDate: string;
+    status: BookingStatus;
+  }>({ userId: '', bookingDate: '', status: 'PENDING' });
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  const saveBooking = useMutation({
+    mutationFn: async () => {
+      const bookingDate = new Date(newBookingData.bookingDate).toISOString();
+      if (editingBookingId) {
+        return updateBooking(editingBookingId, { bookingDate, status: newBookingData.status });
+      }
+      return createBooking({
+        userId: newBookingData.userId,
+        bookingDate,
+        status: newBookingData.status,
+      });
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }),
+      ]);
+      setEditingBookingId(null);
+      setShowNewBookingModal(false);
+      setMutationError(null);
+    },
+    onError: (error) => setMutationError(error instanceof Error ? error.message : 'Could not save booking.'),
   });
 
   const { data: users } = useQuery({
@@ -148,36 +83,34 @@ export default function BookingsPage() {
     queryFn: fetchUsers,
   });
 
-  const { data: todos, isLoading, isError, refetch } = useQuery({
+  const { data: bookings, isLoading, isError, refetch } = useQuery({
     queryKey: ['bookings'],
     queryFn: fetchBookings,
   });
 
-  const baseBookingsList: BookingRecord[] = todos && todos.length > 0
-    ? todos.map((todo: ApiTodo, idx: number) => {
-      const user = users?.find((candidate: ApiUser) => candidate.id === todo.userId);
-      const services = ['Business Consultation', 'Technical Support', 'Executive Coaching', 'Strategy Session', 'Personal Training'];
-      const dates = ['Oct 15, 2024 14:00', 'Oct 14, 2024 10:00', 'Oct 13, 2024 16:30', 'Oct 12, 2024 11:30', 'Oct 11, 2024 09:00', 'Oct 10, 2024 15:00', 'Oct 09, 2024 13:00', 'Oct 08, 2024 10:30'];
-      const durations = ['1.5 hrs', '1.0 hr', '2.0 hrs', '1.5 hrs', '1.0 hr', '1.5 hrs', '1.0 hr', '2.0 hrs'];
-      const amounts = ['$180.00', '$120.00', '$250.00', '$180.00', '$95.00', '$180.00', '$120.00', '$250.00'];
-
-      return {
-        id: `#BKG-${2341 - todo.id}`,
-        customerName: user ? `${user.firstName} ${user.lastName}` : `Customer ${todo.userId}`,
-        avatar: user?.image || defaultBookings[idx % defaultBookings.length].avatar,
-        service: services[idx % services.length],
-        dateTime: dates[idx % dates.length],
-        duration: durations[idx % durations.length],
-        status: todo.completed ? 'Completed' : 'Pending',
-        amount: amounts[idx % amounts.length],
-      };
-    })
-    : defaultBookings;
-
-  const bookingsList = [...customBookings, ...baseBookingsList].map((booking) => ({
-    ...booking,
-    ...bookingOverrides[booking.id],
-  }));
+  const bookingsList: BookingRecord[] = (bookings ?? []).map((booking: ApiBooking) => {
+    const user = users?.find((candidate) => candidate.id === booking.userId);
+    return {
+      id: booking.id,
+      reference: booking.reference,
+      userId: booking.userId,
+      bookingDate: booking.bookingDate,
+      customerName: booking.user?.name ?? user?.name ?? booking.userId,
+      avatar: user?.image ?? '',
+      service: booking.reference,
+      dateTime: new Date(booking.bookingDate).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }),
+      duration: '—',
+      status: booking.status,
+      amount: '—',
+    };
+  });
 
   const searchQuery = localSearch || globalSearchQuery;
   const filterKey = `${searchQuery}|${statusFilter}|${serviceFilter}`;
@@ -187,6 +120,7 @@ export default function BookingsPage() {
   const filteredBookings = bookingsList.filter((b) => {
     const matchesSearch = !searchQuery.trim() || (
       b.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.service.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -197,13 +131,13 @@ export default function BookingsPage() {
   const pageCount = Math.max(1, Math.ceil(filteredBookings.length / PAGE_SIZE));
   const pageStart = (currentPage - 1) * PAGE_SIZE;
   const pageBookings = filteredBookings.slice(pageStart, pageStart + PAGE_SIZE);
-  const activeBookingCount = bookingsList.filter((booking) => booking.status === 'Confirmed' || booking.status === 'Pending').length;
-  const completedBookingCount = bookingsList.filter((booking) => booking.status === 'Completed').length;
-  const cancelledBookingCount = bookingsList.filter((booking) => booking.status === 'Cancelled').length;
+  const activeBookingCount = bookingsList.filter((booking) => booking.status === 'CONFIRMED' || booking.status === 'PENDING').length;
+  const completedBookingCount = bookingsList.filter((booking) => booking.status === 'COMPLETED').length;
+  const cancelledBookingCount = bookingsList.filter((booking) => booking.status === 'CANCELLED').length;
 
   const handleExportCSV = () => {
-    const headers = ['Booking ID', 'Customer Name', 'Service', 'Date & Time', 'Duration', 'Status', 'Amount'];
-    const rows = filteredBookings.map(b => [b.id, b.customerName, b.service, b.dateTime, b.duration, b.status, b.amount]);
+    const headers = ['Booking ID', 'Customer Name', 'Reference', 'Date & Time', 'Status'];
+    const rows = filteredBookings.map(b => [b.reference, b.customerName, b.reference, b.dateTime, b.status]);
     const csvContent = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -215,81 +149,32 @@ export default function BookingsPage() {
 
   const handleSaveBooking = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newBookingData.customerName.trim()) return;
-
-    if (editingBookingId) {
-      setBookingOverrides((current) => ({
-        ...current,
-        [editingBookingId]: { ...current[editingBookingId], ...newBookingData },
-      }));
-      setEditingBookingId(null);
-      setShowNewBookingModal(false);
-      return;
-    }
-
-    const newRecord: BookingRecord = {
-      id: `#BKG-${2342 + customBookings.length}`,
-      customerName: newBookingData.customerName,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      service: newBookingData.service,
-      dateTime: newBookingData.dateTime,
-      duration: newBookingData.duration,
-      status: newBookingData.status,
-      amount: newBookingData.amount,
-    };
-    setCustomBookings([newRecord, ...customBookings]);
-    setShowNewBookingModal(false);
-    setNewBookingData({
-      customerName: '',
-      service: 'Business Consultation',
-      dateTime: 'Oct 16, 2024 10:00',
-      duration: '1.5 hrs',
-      amount: '$180.00',
-      status: 'Confirmed',
-    });
+    setMutationError(null);
+    saveBooking.mutate();
   };
 
   const handleEditBooking = (booking: BookingRecord) => {
     setEditingBookingId(booking.id);
     setNewBookingData({
-      customerName: booking.customerName,
-      service: booking.service,
-      dateTime: booking.dateTime,
-      duration: booking.duration,
-      amount: booking.amount,
+      userId: booking.userId,
+      bookingDate: new Date(
+        new Date(booking.bookingDate).getTime() - new Date(booking.bookingDate).getTimezoneOffset() * 60000,
+      ).toISOString().slice(0, 16),
       status: booking.status,
     });
+    setMutationError(null);
     setShowNewBookingModal(true);
   };
 
-  const handleRescheduleBooking = (bookingId: string, dateTime: string) => {
-    setBookingOverrides((current) => ({
-      ...current,
-      [bookingId]: { ...current[bookingId], dateTime },
-    }));
-  };
-
-  if (selectedBookingId) {
-    const selectedBooking = bookingsList.find((booking) => booking.id === selectedBookingId);
-    return (
-      <BookingDetailPage
-        bookingId={selectedBookingId}
-        bookingDateTime={selectedBooking?.dateTime}
-        onReschedule={(dateTime) => handleRescheduleBooking(selectedBookingId, dateTime)}
-        onBack={() => setSelectedBookingId(null)}
-      />
-    );
-  }
-
   return (
-    <div className="w-full max-w-[1136px] flex flex-col gap-4 lg:gap-[24px] mx-auto font-sans">
+    <div className="mx-auto flex w-full min-w-0 max-w-[1136px] flex-col gap-4 font-sans min-[1440px]:gap-6">
       {/* API Error State with Retry Button Controls */}
       {isError && (
         <div className="w-full bg-[#FEF2F2] border border-[#FCA5A5] rounded-[8px] p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[#991B1B] text-[13px] shadow-xs">
           <div className="flex items-center gap-2.5">
             <AlertTriangle className="w-5 h-5 text-[#EF4444] shrink-0" />
             <span className="font-medium">
-              API Error: Unable to sync live bookings directory with remote server. Displaying cached appointments.
+              API Error: Unable to load bookings from the backend.
             </span>
           </div>
           <button
@@ -301,52 +186,44 @@ export default function BookingsPage() {
         </div>
       )}
       {/* 1. BREADCRUMB / HEADER FRAME */}
-      <div className="hidden lg:flex flex-row justify-between items-center p-0 w-[1136px] h-[50px] shrink-0">
-        <div className="flex flex-col items-start p-0 gap-[4px] w-[367px] h-[50px] shrink-0">
-          <h1 className="w-[225px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] m-0 shrink-0">
+      <div className="hidden min-h-[50px] w-full min-w-0 shrink-0 items-center justify-between gap-4 md:flex">
+        <div className="flex min-w-0 max-w-[367px] flex-1 flex-col items-start gap-1">
+          <h1 className="m-0 w-full font-['Inter'] text-[20px] font-bold leading-[26px] text-[#0F172A] min-[1024px]:text-[24px] min-[1024px]:leading-[29px]">
             Bookings Directory
           </h1>
-          <p className="w-[367px] h-[17px] font-normal text-[14px] leading-[17px] text-[#64748B] font-['Inter'] m-0 shrink-0">
+          <p className="m-0 w-full font-['Inter'] text-[12px] font-normal leading-[17px] text-[#64748B] min-[1024px]:text-[14px]">
             Manage all service bookings and consultation meetings
           </p>
         </div>
         <button
           onClick={() => {
             setEditingBookingId(null);
-            setNewBookingData({ customerName: '', service: 'Business Consultation', dateTime: 'Oct 16, 2024 10:00', duration: '1.5 hrs', amount: '$180.00', status: 'Confirmed' });
+            setNewBookingData({ userId: users?.[0]?.id ?? '', bookingDate: '', status: 'PENDING' });
+            setEditingBookingId(null);
+            setMutationError(null);
             setShowNewBookingModal(true);
           }}
-          className="box-border flex flex-row items-center px-[16px] py-[10px] gap-[8px] w-[145px] h-[37px] bg-[#4F46E5] rounded-[8px] shrink-0 cursor-pointer hover:bg-[#4338CA] transition-colors"
+          className="box-border flex h-[37px] w-[145px] shrink-0 flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-3 py-2.5 cursor-pointer transition-colors hover:bg-[#4338CA]"
         >
           <div className="flex flex-row justify-center items-center p-0 w-[16px] h-[16px] shrink-0">
             <Plus className="w-[16px] h-[16px] text-white" strokeWidth={2} />
           </div>
-          <span className="w-[89px] h-[17px] font-semibold text-[14px] leading-[17px] text-white font-['Inter'] shrink-0 text-left">
+          <span className="h-auto w-auto whitespace-nowrap font-semibold text-[14px] leading-[17px] text-white font-['Inter'] shrink-0 text-left">
             New Booking
           </span>
         </button>
       </div>
 
       {/* 1. BREADCRUMB / HEADER FRAME (Mobile) */}
-      <div className="flex lg:hidden w-[358px] min-h-[41px] items-center justify-between gap-4">
+      <div className="flex min-h-[41px] w-full items-center justify-between gap-4 md:hidden">
         <div className="flex flex-col gap-[4px]">
           <h1 className="text-[18px] font-bold text-[#0F172A] leading-tight">Active Bookings</h1>
           <p className="text-[12px] text-[#64748B] leading-[15px]">Manage and schedule corporate bookings</p>
         </div>
-        <button
-          onClick={() => {
-            setEditingBookingId(null);
-            setNewBookingData({ customerName: '', service: 'Business Consultation', dateTime: 'Oct 16, 2024 10:00', duration: '1.5 hrs', amount: '$180.00', status: 'Confirmed' });
-            setShowNewBookingModal(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#4F46E5] text-white rounded-[8px] text-[14px] font-semibold hover:bg-[#4338CA] transition-colors cursor-pointer shadow-xs"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
       </div>
 
       {/* MOBILE SEARCH */}
-      <div className="flex lg:hidden w-[358px] h-[36px] gap-[8px]">
+      <div className="flex h-9 w-full gap-2 lg:hidden">
         <div className="flex-1 bg-white border border-[#E2E8F0] rounded-[8px] px-[12px] py-[8px] flex items-center gap-[8px] box-border">
           <Search className="w-[14px] h-[14px] text-[#94A3B8]" />
           <input
@@ -357,92 +234,104 @@ export default function BookingsPage() {
             className="w-full text-[13px] text-[#0F172A] placeholder-[#94A3B8] focus:outline-none bg-transparent"
           />
         </div>
-        <button className="w-[36px] h-[36px] bg-white border border-[#E2E8F0] rounded-[8px] flex items-center justify-center shrink-0">
-          <TrendingUp className="w-[16px] h-[16px] text-[#475569]" />
-        </button>
+        <label className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white" aria-label="Filter bookings by status">
+          <TrendingDown className="pointer-events-none h-4 w-4 text-[#475569]" />
+          <select
+            aria-label="Filter bookings by status"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          >
+            <option value="All">All statuses</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="PENDING">Pending</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </label>
       </div>
 
       {/* 2. KPI SUMMARY ROW (Desktop) */}
-      <div className="hidden lg:flex flex-row items-start p-0 gap-[16px] w-[1136px] h-[134px] shrink-0">
+      <div className="hidden w-full shrink-0 grid-cols-2 gap-3 lg:grid min-[1440px]:h-[134px] min-[1440px]:grid-cols-4 min-[1440px]:gap-4">
         {/* Card 1 */}
-        <div className="box-border flex flex-col items-start p-[20px] gap-[12px] w-[272px] h-[134px] bg-white border border-[#E2E8F0] rounded-[8px] flex-1 shrink-0">
-          <div className="flex flex-row justify-between items-center p-0 w-[232px] h-[32px] shrink-0">
-            <span className="w-[99px] h-[17px] font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Total Bookings</span>
+        <div className="box-border flex h-[134px] w-full min-w-0 flex-col items-start gap-3 rounded-lg border border-[#E2E8F0] bg-white p-4 min-[1440px]:p-5">
+          <div className="flex h-8 w-full min-w-0 shrink-0 items-center justify-between">
+            <span className="h-auto w-auto whitespace-nowrap font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Total Bookings</span>
             <div className="flex flex-row justify-center items-center p-0 w-[32px] h-[32px] bg-[#EEF2FF] rounded-[16px] shrink-0">
               <Calendar className="w-[16px] h-[16px] text-[#4F46E5]" />
             </div>
           </div>
-          <div className="flex flex-col items-start p-0 gap-[4px] w-[232px] h-[50px] shrink-0">
-            <span className="w-[71px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{bookingsList.length.toLocaleString()}</span>
+          <div className="flex h-[50px] w-full min-w-0 shrink-0 flex-col items-start gap-1">
+            <span className="h-auto w-auto whitespace-nowrap font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{bookingsList.length.toLocaleString()}</span>
             <div className="flex flex-row items-center p-0 gap-[4px] w-[127px] h-[17px] shrink-0">
               <div className="flex flex-row items-start px-[6px] py-[2px] w-[53px] h-[17px] bg-[#D1FAE5] rounded-[4px] shrink-0 box-border">
-                <span className="w-[41px] h-[13px] font-bold text-[11px] leading-[13px] text-[#065F46] font-['Inter'] shrink-0">↑ 8.4%</span>
+                <span className="w-[41px] h-[13px] whitespace-nowrap font-bold text-[11px] leading-[13px] text-[#065F46] font-['Inter'] shrink-0">↑ 8.4%</span>
               </div>
-              <span className="w-[70px] h-[13px] font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
+              <span className="w-[70px] h-[13px] whitespace-nowrap font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
             </div>
           </div>
         </div>
 
         {/* Card 2 */}
-        <div className="box-border flex flex-col items-start p-[20px] gap-[12px] w-[272px] h-[134px] bg-white border border-[#E2E8F0] rounded-[8px] flex-1 shrink-0">
-          <div className="flex flex-row justify-between items-center p-0 w-[232px] h-[32px] shrink-0">
-            <span className="w-[108px] h-[17px] font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Active Bookings</span>
+        <div className="box-border flex h-[134px] w-full min-w-0 flex-col items-start gap-3 rounded-lg border border-[#E2E8F0] bg-white p-4 min-[1440px]:p-5">
+          <div className="flex h-8 w-full min-w-0 shrink-0 items-center justify-between">
+            <span className="h-auto w-auto whitespace-nowrap font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Active Bookings</span>
             <div className="flex flex-row justify-center items-center p-0 w-[32px] h-[32px] bg-[#EEF2FF] rounded-[16px] shrink-0">
               <Calendar className="w-[16px] h-[16px] text-[#4F46E5]" />
             </div>
           </div>
-          <div className="flex flex-col items-start p-0 gap-[4px] w-[232px] h-[50px] shrink-0">
-            <span className="w-[66px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{activeBookingCount.toLocaleString()}</span>
+          <div className="flex h-[50px] w-full min-w-0 shrink-0 flex-col items-start gap-1">
+            <span className="h-auto w-auto whitespace-nowrap font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{activeBookingCount.toLocaleString()}</span>
             <div className="flex flex-row items-center p-0 gap-[4px] w-[124px] h-[17px] shrink-0">
               <div className="flex flex-row items-start px-[6px] py-[2px] w-[50px] h-[17px] bg-[#FEE2E2] rounded-[4px] shrink-0 box-border">
-                <span className="w-[38px] h-[13px] font-bold text-[11px] leading-[13px] text-[#991B1B] font-['Inter'] shrink-0">↓ 3.1%</span>
+                <span className="w-[38px] h-[13px] whitespace-nowrap font-bold text-[11px] leading-[13px] text-[#991B1B] font-['Inter'] shrink-0">↓ 3.1%</span>
               </div>
-              <span className="w-[70px] h-[13px] font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
+              <span className="w-[70px] h-[13px] whitespace-nowrap font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
             </div>
           </div>
         </div>
 
         {/* Card 3 */}
-        <div className="box-border flex flex-col items-start p-[20px] gap-[12px] w-[272px] h-[134px] bg-white border border-[#E2E8F0] rounded-[8px] flex-1 shrink-0">
-          <div className="flex flex-row justify-between items-center p-0 w-[232px] h-[32px] shrink-0">
-            <span className="w-[140px] h-[17px] font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Completed Bookings</span>
+        <div className="box-border flex h-[134px] w-full min-w-0 flex-col items-start gap-3 rounded-lg border border-[#E2E8F0] bg-white p-4 min-[1440px]:p-5">
+          <div className="flex h-8 w-full min-w-0 shrink-0 items-center justify-between">
+            <span className="h-auto w-auto whitespace-nowrap font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Completed Bookings</span>
             <div className="flex flex-row justify-center items-center p-0 w-[32px] h-[32px] bg-[#EEF2FF] rounded-[16px] shrink-0">
               <Calendar className="w-[16px] h-[16px] text-[#4F46E5]" />
             </div>
           </div>
-          <div className="flex flex-col items-start p-0 gap-[4px] w-[232px] h-[50px] shrink-0">
-            <span className="w-[70px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{completedBookingCount.toLocaleString()}</span>
+          <div className="flex h-[50px] w-full min-w-0 shrink-0 flex-col items-start gap-1">
+            <span className="h-auto w-auto whitespace-nowrap font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{completedBookingCount.toLocaleString()}</span>
             <div className="flex flex-row items-center p-0 gap-[4px] w-[129px] h-[17px] shrink-0">
               <div className="flex flex-row items-start px-[6px] py-[2px] w-[55px] h-[17px] bg-[#D1FAE5] rounded-[4px] shrink-0 box-border">
-                <span className="w-[43px] h-[13px] font-bold text-[11px] leading-[13px] text-[#065F46] font-['Inter'] shrink-0">↑ 12.1%</span>
+                <span className="w-[43px] h-[13px] whitespace-nowrap font-bold text-[11px] leading-[13px] text-[#065F46] font-['Inter'] shrink-0">↑ 12.1%</span>
               </div>
-              <span className="w-[70px] h-[13px] font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
+              <span className="w-[70px] h-[13px] whitespace-nowrap font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
             </div>
           </div>
         </div>
 
         {/* Card 4 */}
-        <div className="box-border flex flex-col items-start p-[20px] gap-[12px] w-[272px] h-[134px] bg-white border border-[#E2E8F0] rounded-[8px] flex-1 shrink-0">
-          <div className="flex flex-row justify-between items-center p-0 w-[232px] h-[32px] shrink-0">
-            <span className="w-[133px] h-[17px] font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Cancelled Bookings</span>
+        <div className="box-border flex h-[134px] w-full min-w-0 flex-col items-start gap-3 rounded-lg border border-[#E2E8F0] bg-white p-4 min-[1440px]:p-5">
+          <div className="flex h-8 w-full min-w-0 shrink-0 items-center justify-between">
+            <span className="h-auto w-auto whitespace-nowrap font-medium text-[14px] leading-[17px] text-[#64748B] font-['Inter'] shrink-0">Cancelled Bookings</span>
             <div className="flex flex-row justify-center items-center p-0 w-[32px] h-[32px] bg-[#EEF2FF] rounded-[16px] shrink-0">
               <Calendar className="w-[16px] h-[16px] text-[#4F46E5]" />
             </div>
           </div>
-          <div className="flex flex-col items-start p-0 gap-[4px] w-[232px] h-[50px] shrink-0">
-            <span className="w-[44px] h-[29px] font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{cancelledBookingCount.toLocaleString()}</span>
+          <div className="flex h-[50px] w-full min-w-0 shrink-0 flex-col items-start gap-1">
+            <span className="h-auto w-auto whitespace-nowrap font-bold text-[24px] leading-[29px] text-[#0F172A] font-['Inter'] shrink-0">{cancelledBookingCount.toLocaleString()}</span>
             <div className="flex flex-row items-center p-0 gap-[4px] w-[125px] h-[17px] shrink-0">
               <div className="flex flex-row items-start px-[6px] py-[2px] w-[51px] h-[17px] bg-[#D1FAE5] rounded-[4px] shrink-0 box-border">
-                <span className="w-[39px] h-[13px] font-bold text-[11px] leading-[13px] text-[#065F46] font-['Inter'] shrink-0">↓ 1.4%</span>
+                <span className="w-[39px] h-[13px] whitespace-nowrap font-bold text-[11px] leading-[13px] text-[#065F46] font-['Inter'] shrink-0">↓ 1.4%</span>
               </div>
-              <span className="w-[70px] h-[13px] font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
+              <span className="w-[70px] h-[13px] whitespace-nowrap font-normal text-[11px] leading-[13px] text-[#64748B] font-['Inter'] shrink-0">vs last month</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* 2. KPI SUMMARY ROW (Mobile) */}
-      <div className="flex lg:hidden grid grid-cols-2 gap-[8px] w-[358px]">
+      <div className="grid w-full grid-cols-2 gap-2 lg:hidden">
         {/* Card 1: Total Bookings */}
         <div className="bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] flex flex-col justify-between h-[60px]">
           <span className="text-[11px] font-normal text-[#64748B] leading-[13px]">Total Bookings</span>
@@ -469,70 +358,72 @@ export default function BookingsPage() {
       <button
         onClick={() => {
           setEditingBookingId(null);
-          setNewBookingData({ customerName: '', service: 'Business Consultation', dateTime: 'Oct 16, 2024 10:00', duration: '1.5 hrs', amount: '$180.00', status: 'Confirmed' });
+          setNewBookingData({ userId: users?.[0]?.id ?? '', bookingDate: '', status: 'PENDING' });
+          setEditingBookingId(null);
+          setMutationError(null);
           setShowNewBookingModal(true);
         }}
-        className="flex lg:hidden items-center justify-center gap-2 w-[358px] h-[40px] bg-[#4F46E5] text-white rounded-[8px] text-[13px] font-semibold cursor-pointer"
+        className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#4F46E5] text-[13px] font-semibold text-white cursor-pointer md:hidden"
       >
         <Plus className="w-[14px] h-[14px]" />
         <span>Create New Booking</span>
       </button>
 
       {/* 3. DESKTOP SEARCH & FILTER FRAME */}
-      <div className="box-border hidden lg:flex flex-row justify-between items-center p-[16px] w-[1136px] h-[64px] bg-white border border-[#E2E8F0] rounded-[8px] shrink-0">
-        <div className="flex flex-row items-center p-0 gap-[12px] w-[735px] h-[32px] shrink-0">
-          <div className="box-border flex flex-row items-center px-[12px] py-[8px] gap-[8px] w-[240px] h-[32px] border border-[#E2E8F0] rounded-[8px] shrink-0">
+      <div className="box-border hidden min-h-16 w-full shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-[#E2E8F0] bg-white p-4 lg:flex">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-3 min-[1440px]:w-[735px] min-[1440px]:flex-nowrap">
+          <div className="box-border flex h-8 w-full min-w-0 flex-row items-center gap-2 rounded-lg border border-[#E2E8F0] px-3 py-2 min-[640px]:w-[240px]">
             <Search className="w-[16px] h-[16px] text-[#94A3B8] shrink-0" />
             <input
               type="text"
               placeholder="Search bookings by ID or client..."
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-[202px] h-[16px] font-normal text-[13px] leading-[16px] text-[#0F172A] placeholder-[#94A3B8] font-['Inter'] bg-transparent focus:outline-none shrink-0"
+              className="h-4 w-full min-w-0 bg-transparent font-['Inter'] text-[13px] font-normal leading-4 text-[#0F172A] placeholder-[#94A3B8] focus:outline-none"
             />
           </div>
 
-          <div className="box-border flex flex-row items-center px-[12px] py-[8px] gap-[6px] w-[204px] h-[32px] border border-[#E2E8F0] rounded-[8px] shrink-0 relative bg-white overflow-hidden">
+          <div className="box-border relative flex h-8 w-[calc(50%-6px)] min-w-0 shrink-0 flex-row items-center gap-1.5 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 min-[640px]:w-[204px]">
             <select className="w-full h-full absolute inset-0 opacity-0 cursor-pointer text-[13px] font-['Inter']">
               <option>Date Range: Last 30 Days</option>
               <option>Date Range: Last 7 Days</option>
             </select>
-            <span className="w-[160px] h-[16px] font-medium text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0 pointer-events-none truncate">Date Range: Last 30 Days</span>
+            <span className="pointer-events-none w-[160px] shrink-0 whitespace-nowrap font-['Inter'] text-[13px] font-medium leading-4 text-[#475569]">Date Range: Last 30 Days</span>
             <div className="flex flex-row justify-center items-center p-0 w-[14px] h-[14px] shrink-0 pointer-events-none">
               <TrendingDown className="w-[14px] h-[14px] text-[#64748B]" />
             </div>
           </div>
 
-          <div className="box-border flex flex-row items-center px-[12px] py-[8px] gap-[6px] w-[107px] h-[32px] border border-[#E2E8F0] rounded-[8px] shrink-0 relative bg-white overflow-hidden">
+          <div className="box-border relative flex h-8 w-[calc(50%-6px)] min-w-0 shrink-0 flex-row items-center gap-1.5 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 min-[640px]:w-[107px]">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full h-full absolute inset-0 opacity-0 cursor-pointer text-[13px] font-['Inter']"
             >
               <option value="All">Status: All</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Completed">Completed</option>
-              <option value="Pending">Pending</option>
-              <option value="Cancelled">Cancelled</option>
+              <option value="CONFIRMED">Confirmed</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="PENDING">Pending</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
-            <span className="w-[63px] h-[16px] font-medium text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0 pointer-events-none truncate">{statusFilter === 'All' ? 'Status: All' : statusFilter}</span>
+            <span className="w-[63px] h-[16px] font-medium text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0 pointer-events-none truncate">{statusFilter === 'All' ? 'Status: All' : formatStatus(statusFilter)}</span>
             <div className="flex flex-row justify-center items-center p-0 w-[14px] h-[14px] shrink-0 pointer-events-none">
               <TrendingDown className="w-[14px] h-[14px] text-[#64748B]" />
             </div>
           </div>
 
-          <div className="box-border flex flex-row items-center px-[12px] py-[8px] gap-[6px] w-[148px] h-[32px] border border-[#E2E8F0] rounded-[8px] shrink-0 relative bg-white overflow-hidden">
+          <div className="box-border relative flex h-8 w-[calc(50%-6px)] min-w-0 shrink-0 flex-row items-center gap-1.5 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 min-[640px]:w-[148px]">
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
               className="w-full h-full absolute inset-0 opacity-0 cursor-pointer text-[13px] font-['Inter']"
             >
               <option value="All">Service Type: All</option>
-              <option value="Business Consultation">Business Consultation</option>
-              <option value="Technical Support">Technical Support</option>
-              <option value="Executive Coaching">Executive Coaching</option>
+              {[...new Set(bookingsList.map((booking) => booking.reference))].map((reference) => (
+                <option key={reference} value={reference}>{reference}</option>
+              ))}
             </select>
-            <span className="w-[104px] h-[16px] font-medium text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0 pointer-events-none truncate">{serviceFilter === 'All' ? 'Service: All' : serviceFilter}</span>
+            <span className="w-[104px] h-[16px] font-medium text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0 pointer-events-none truncate">{serviceFilter === 'All' ? 'Service Type: All' : serviceFilter}</span>
             <div className="flex flex-row justify-center items-center p-0 w-[14px] h-[14px] shrink-0 pointer-events-none">
               <TrendingDown className="w-[14px] h-[14px] text-[#64748B]" />
             </div>
@@ -541,7 +432,7 @@ export default function BookingsPage() {
 
         <button
           onClick={handleExportCSV}
-          className="box-border flex flex-row items-center px-[12px] py-[8px] gap-[6px] w-[111px] h-[32px] border border-[#E2E8F0] rounded-[8px] shrink-0 cursor-pointer hover:bg-[#F8FAFC] transition-colors"
+          className="box-border flex h-8 w-[111px] shrink-0 flex-row items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-3 py-2 cursor-pointer hover:bg-[#F8FAFC] transition-colors"
         >
           <div className="flex flex-row justify-center items-center p-0 w-[14px] h-[14px] shrink-0">
             <Download className="w-[14px] h-[14px] text-[#475569]" strokeWidth={2} />
@@ -553,7 +444,7 @@ export default function BookingsPage() {
       </div>
 
       {/* 4. BOOKINGS TABLE FRAME */}
-      <div className="w-[358px] lg:hidden bg-transparent flex flex-col justify-between">
+      <div className="flex w-full flex-col justify-between bg-transparent lg:hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16 text-[#64748B] gap-3">
             <span className="text-xs font-semibold text-[#0F172A]">Fetching bookings directory...</span>
@@ -576,37 +467,37 @@ export default function BookingsPage() {
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-[10px] w-full">
+          <div className="flex w-full flex-col gap-[10px]">
             {pageBookings.map((b) => (
-              <div key={b.id} className="box-border w-[358px] h-[127px] bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] flex flex-col gap-[10px]">
+              <div key={b.id} className="box-border flex h-[127px] w-full min-w-0 flex-col gap-[10px] rounded-lg border border-[#E2E8F0] bg-white p-3">
                 {/* Top Row */}
-                <div className="w-[334px] h-[19px] flex items-center justify-between">
-                  <span className="text-[13px] leading-[16px] font-bold text-[#0F172A]">{b.id}</span>
-                  <div className={`flex items-start px-[8px] py-[3px] rounded-[12px] ${b.status === 'Confirmed' || b.status === 'Completed' ? 'bg-[#D1FAE5]' : b.status === 'Pending' ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'
+                <div className="flex h-[19px] w-full min-w-0 items-center justify-between gap-2">
+                  <span className="truncate text-[13px] font-bold leading-4 text-[#0F172A]">{b.reference}</span>
+                    <div className={`flex items-start px-[8px] py-[3px] rounded-[12px] ${b.status === 'CONFIRMED' || b.status === 'COMPLETED' ? 'bg-[#D1FAE5]' : b.status === 'PENDING' ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'
                     }`}>
-                    <span className={`text-[11px] leading-[13px] font-semibold ${b.status === 'Confirmed' || b.status === 'Completed' ? 'text-[#065F46]' : b.status === 'Pending' ? 'text-[#92400E]' : 'text-[#991B1B]'
+                      <span className={`text-[11px] leading-[13px] font-semibold ${b.status === 'CONFIRMED' || b.status === 'COMPLETED' ? 'text-[#065F46]' : b.status === 'PENDING' ? 'text-[#92400E]' : 'text-[#991B1B]'
                       }`}>
-                      {b.status === 'Confirmed' ? 'Active' : b.status}
+                        {formatStatus(b.status)}
                     </span>
                   </div>
                 </div>
                 {/* Divider */}
-                <div className="w-[334px] h-0 border-t border-[#E2E8F0]" />
+                <div className="h-0 w-full border-t border-[#E2E8F0]" />
                 {/* Middle Row */}
-                <div className="w-[334px] h-[30px] flex items-center justify-between">
-                  <div className="flex items-center gap-[8px]">
-                    <img src={b.avatar} alt={b.customerName} className="w-[24px] h-[24px] rounded-[12px] object-cover" />
-                    <div className="flex flex-col gap-[1px]">
-                      <span className="text-[13px] leading-[16px] font-semibold text-[#0F172A]">{b.customerName}</span>
+                <div className="flex h-[30px] w-full min-w-0 items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    {b.avatar && <img src={b.avatar} alt={b.customerName} className="h-6 w-6 shrink-0 rounded-full object-cover" />}
+                    <div className="flex min-w-0 flex-col gap-px">
+                      <span className="truncate text-[13px] font-semibold leading-4 text-[#0F172A]">{b.customerName}</span>
                       <span className="text-[11px] leading-[13px] font-normal text-[#64748B]">{b.service}</span>
                     </div>
                   </div>
-                  <span className="text-[13px] leading-[16px] font-bold text-[#4F46E5]">{b.amount}</span>
+                  <span className="shrink-0 text-[13px] font-bold leading-4 text-[#4F46E5]">{b.amount}</span>
                 </div>
                 {/* Bottom Row */}
-                <div className="w-[334px] h-[24px] flex items-center justify-between mt-[4px]">
-                  <span className="text-[10px] leading-[12px] font-normal text-[#64748B]">{b.dateTime}</span>
-                  <button onClick={() => setSelectedBookingId(b.id)} className="w-[20px] h-[20px] bg-[#F8FAFC] rounded-[4px] flex items-center justify-center cursor-pointer hover:bg-[#F1F5F9]">
+                <div className="mt-1 flex h-6 w-full items-center justify-between gap-2">
+                  <span className="truncate text-[10px] font-normal leading-3 text-[#64748B]">{b.dateTime}</span>
+                  <button onClick={() => router.push(`/booking-detail?id=${encodeURIComponent(b.id)}`)} className="w-[20px] h-[20px] bg-[#F8FAFC] rounded-[4px] flex items-center justify-center cursor-pointer hover:bg-[#F1F5F9]">
                     <ArrowLeft className="w-[12px] h-[12px] text-[#475569] rotate-180" />
                   </button>
                 </div>
@@ -616,51 +507,41 @@ export default function BookingsPage() {
         )}
       </div>
 
-      <div className="box-border hidden lg:flex flex-col items-start p-[20px] gap-[16px] w-[1136px] h-[518px] bg-white border border-[#E2E8F0] rounded-[8px] shrink-0">
-        <div className="flex flex-col items-start p-0 w-[1096px] h-[423px] shrink-0">
-          <div className="box-border flex flex-row items-center p-[12px] gap-[16px] w-[1096px] h-[39px] bg-[#F8FAFC] rounded-[6px] shrink-0">
-            <div className="w-[110px] h-[15px] shrink-0"><span className="w-[71px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">BOOKING ID</span></div>
-            <div className="w-[180px] h-[15px] shrink-0"><span className="w-[69px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">CUSTOMER</span></div>
-            <div className="w-[150px] h-[15px] shrink-0"><span className="w-[51px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">SERVICE</span></div>
-            <div className="w-[160px] h-[15px] shrink-0"><span className="w-[75px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">DATE & TIME</span></div>
-            <div className="w-[100px] h-[15px] shrink-0"><span className="w-[63px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">DURATION</span></div>
-            <div className="w-[100px] h-[15px] shrink-0"><span className="w-[47px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">STATUS</span></div>
-            <div className="w-[100px] h-[15px] shrink-0"><span className="w-[55px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0">AMOUNT</span></div>
-            <div className="flex flex-row justify-end items-start p-0 w-[80px] h-[15px] shrink-0"><span className="w-[55px] h-[15px] font-semibold text-[12px] leading-[15px] text-[#64748B] font-['Inter'] shrink-0 text-right">ACTIONS</span></div>
-          </div>
-          
-          <div className="flex flex-col w-[1096px] h-auto flex-grow overflow-y-auto">
+      <div className="box-border hidden h-[518px] w-full min-w-0 shrink-0 flex-col items-start gap-4 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white p-5 lg:flex">
+        <div className="h-[423px] w-full min-h-0 min-w-0 overflow-x-auto overflow-y-hidden">
+          <div className="w-[1096px] min-w-[1096px]">
+            <div className="box-border grid h-[39px] w-[1096px] shrink-0 grid-cols-[110px_180px_150px_160px_100px_100px_100px_60px] items-center gap-4 rounded-md bg-[#F8FAFC] p-3">
+              <span className="whitespace-nowrap font-['Inter'] text-[12px] font-semibold leading-[15px] text-[#64748B]">BOOKING ID</span>
+              <span className="whitespace-nowrap font-['Inter'] text-[12px] font-semibold leading-[15px] text-[#64748B]">CUSTOMER</span>
+              <span className="whitespace-nowrap font-['Inter'] text-[12px] font-semibold leading-[15px] text-[#64748B]">SERVICE</span>
+              <span className="whitespace-nowrap font-['Inter'] text-[12px] font-semibold leading-[15px] text-[#64748B]">DATE &amp; TIME</span>
+              <span className="whitespace-nowrap font-['Inter'] text-[12px] font-semibold leading-[15px] text-[#64748B]">DURATION</span>
+              <span className="whitespace-nowrap font-['Inter'] text-[12px] font-semibold leading-[15px] text-[#64748B]">STATUS</span>
+              <span className="whitespace-nowrap font-['Inter'] text-[12px] font-semibold leading-[15px] text-[#64748B]">AMOUNT</span>
+              <span className="text-right font-['Inter'] text-[12px] font-semibold leading-[15px] text-[#64748B]">ACTIONS</span>
+            </div>
+
             {pageBookings.map((b) => (
-              <div key={b.id} className="box-border flex flex-row items-center p-[12px] gap-[16px] w-[1096px] h-[48px] border-b border-[#E2E8F0] shrink-0 hover:bg-[#F8FAFC] transition-colors">
-                <div className="flex flex-row items-start p-0 w-[110px] h-[16px] shrink-0">
-                  <span className="w-[73px] h-[16px] font-semibold text-[13px] leading-[16px] text-[#0F172A] font-['Inter'] shrink-0">{b.id}</span>
+              <div key={b.id} className="box-border grid h-[48px] w-[1096px] shrink-0 grid-cols-[110px_180px_150px_160px_100px_100px_100px_60px] items-center gap-4 border-b border-[#E2E8F0] px-3 hover:bg-[#F8FAFC]">
+                <span className="whitespace-nowrap font-['Inter'] text-[13px] font-semibold leading-4 text-[#0F172A]">{b.reference}</span>
+                <div className="flex h-6 min-w-0 items-center gap-2">
+                  {b.avatar && <img src={b.avatar} alt={b.customerName} className="h-6 w-6 shrink-0 rounded-full object-cover" />}
+                  <span className="min-w-0 truncate font-['Inter'] text-[13px] font-medium leading-4 text-[#0F172A]">{b.customerName}</span>
                 </div>
-                <div className="flex flex-row items-center p-0 gap-[8px] w-[180px] h-[24px] shrink-0">
-                  <img src={b.avatar} alt={b.customerName} className="w-[24px] h-[24px] rounded-[12px] object-cover shrink-0" />
-                  <span className="w-[148px] h-[16px] font-medium text-[13px] leading-[16px] text-[#0F172A] font-['Inter'] shrink-0 truncate">{b.customerName}</span>
-                </div>
-                <div className="flex flex-row items-start p-0 w-[150px] h-[16px] shrink-0">
-                  <span className="w-[136px] h-[16px] font-normal text-[13px] leading-[16px] text-[#0F172A] font-['Inter'] shrink-0 truncate">{b.service}</span>
-                </div>
-                <div className="flex flex-row items-start p-0 w-[160px] h-[16px] shrink-0">
-                  <span className="w-[117px] h-[16px] font-normal text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0">{b.dateTime}</span>
-                </div>
-                <div className="flex flex-row items-start p-0 w-[100px] h-[16px] shrink-0">
-                  <span className="w-[40px] h-[16px] font-normal text-[13px] leading-[16px] text-[#475569] font-['Inter'] shrink-0">{b.duration}</span>
-                </div>
-                <div className="flex flex-row items-start p-0 w-[100px] h-[21px] shrink-0">
-                  <div className={`flex flex-row items-start px-[8px] py-[4px] rounded-[12px] shrink-0 ${b.status === 'Confirmed' || b.status === 'Completed' ? 'bg-[#D1FAE5]' : b.status === 'Pending' ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'}`}>
-                    <span className={`h-[13px] font-semibold text-[11px] leading-[13px] font-['Inter'] shrink-0 ${b.status === 'Confirmed' || b.status === 'Completed' ? 'text-[#065F46]' : b.status === 'Pending' ? 'text-[#92400E]' : 'text-[#991B1B]'}`}>{b.status}</span>
+                <span className="truncate font-['Inter'] text-[13px] leading-4 text-[#0F172A]" title={b.service}>{b.service}</span>
+                <span className="whitespace-nowrap font-['Inter'] text-[13px] leading-4 text-[#475569]">{b.dateTime}</span>
+                <span className="whitespace-nowrap font-['Inter'] text-[13px] leading-4 text-[#475569]">{b.duration}</span>
+                <div className="flex h-[21px] items-start">
+                  <div className={`flex flex-row items-start px-[8px] py-[4px] rounded-[12px] shrink-0 ${b.status === 'CONFIRMED' || b.status === 'COMPLETED' ? 'bg-[#D1FAE5]' : b.status === 'PENDING' ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'}`}>
+                    <span className={`h-[13px] font-semibold text-[11px] leading-[13px] font-['Inter'] shrink-0 ${b.status === 'CONFIRMED' || b.status === 'COMPLETED' ? 'text-[#065F46]' : b.status === 'PENDING' ? 'text-[#92400E]' : 'text-[#991B1B]'}`}>{formatStatus(b.status)}</span>
                   </div>
                 </div>
-                <div className="flex flex-row items-start p-0 w-[100px] h-[16px] shrink-0">
-                  <span className="w-[53px] h-[16px] font-semibold text-[13px] leading-[16px] text-[#0F172A] font-['Inter'] shrink-0">{b.amount}</span>
-                </div>
-                <div className="flex flex-row justify-end items-start p-0 gap-[12px] w-[80px] h-[16px] shrink-0">
-                  <button onClick={() => setSelectedBookingId(b.id)} className="flex flex-row justify-center items-center p-0 w-[16px] h-[16px] bg-transparent border-none cursor-pointer shrink-0">
+                <span className="whitespace-nowrap font-['Inter'] text-[13px] font-semibold leading-4 text-[#0F172A]">{b.amount}</span>
+                <div className="flex items-center justify-end gap-3">
+                  <button aria-label={`View booking ${b.reference}`} onClick={() => router.push(`/booking-detail?id=${encodeURIComponent(b.id)}`)} className="flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center border-none bg-transparent p-0">
                     <Eye className="w-[16px] h-[16px] text-[#475569] hover:text-[#0F172A] transition-colors" strokeWidth={2} />
                   </button>
-                  <button onClick={() => handleEditBooking(b)} className="flex flex-row justify-center items-center p-0 w-[16px] h-[16px] bg-transparent border-none cursor-pointer shrink-0">
+                  <button aria-label={`Edit booking ${b.reference}`} onClick={() => handleEditBooking(b)} className="flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center border-none bg-transparent p-0">
                     <Pencil className="w-[16px] h-[16px] text-[#475569] hover:text-[#0F172A] transition-colors" strokeWidth={2} />
                   </button>
                 </div>
@@ -670,7 +551,7 @@ export default function BookingsPage() {
         </div>
         
         {/* Table Footer / Pagination */}
-        <div className="flex items-center justify-between pt-[12px] border-t border-[#F1F5F9] text-[12px] w-full shrink-0">
+        <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[#F1F5F9] pt-3 text-[12px]">
           <span className="text-[#64748B]">
             Showing <span className="font-semibold text-[#0F172A]">{filteredBookings.length ? `${pageStart + 1}-${Math.min(pageStart + PAGE_SIZE, filteredBookings.length)}` : '0'}</span> of{' '}
             <span className="font-semibold text-[#0F172A]">{filteredBookings.length}</span> results
@@ -708,77 +589,50 @@ export default function BookingsPage() {
               </button>
             </div>
             <form onSubmit={handleSaveBooking} className="p-6 flex flex-col gap-4">
+              {mutationError && (
+                <div role="alert" className="rounded-[6px] bg-[#FEF2F2] p-3 text-[13px] text-[#991B1B]">
+                  {mutationError}
+                </div>
+              )}
               <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-semibold text-[#0F172A]">Customer Name</label>
-                <input
-                  type="text"
+                <label className="text-[13px] font-semibold text-[#0F172A]">Customer</label>
+                <select
                   required
-                  placeholder="e.g. Alexander Wright"
-                  value={newBookingData.customerName}
-                  onChange={(e) => setNewBookingData({ ...newBookingData, customerName: e.target.value })}
-                  className="h-[40px] px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A] focus:outline-none focus:border-[#4F46E5]"
+                  value={newBookingData.userId}
+                  disabled={Boolean(editingBookingId)}
+                  onChange={(e) => setNewBookingData({ ...newBookingData, userId: e.target.value })}
+                  className="h-[40px] px-3 bg-white border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A] focus:outline-none focus:border-[#4F46E5] disabled:opacity-60"
+                >
+                  <option value="" disabled>Select a user</option>
+                  {(users ?? []).map((user) => (
+                    <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-semibold text-[#0F172A]">Booking Date & Time</label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={newBookingData.bookingDate}
+                  onChange={(e) => setNewBookingData({ ...newBookingData, bookingDate: e.target.value })}
+                  className="h-[40px] px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A]"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-semibold text-[#0F172A]">Service Type</label>
+                <label className="text-[13px] font-semibold text-[#0F172A]">Status</label>
                 <select
-                  value={newBookingData.service}
-                  onChange={(e) => setNewBookingData({ ...newBookingData, service: e.target.value })}
-                  className="h-[40px] px-3 bg-white border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A] focus:outline-none focus:border-[#4F46E5]"
+                  value={newBookingData.status}
+                  onChange={(e) => setNewBookingData({ ...newBookingData, status: e.target.value as BookingStatus })}
+                  className="h-[40px] px-3 bg-white border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A]"
                 >
-                  <option>Business Consultation</option>
-                  <option>Technical Support</option>
-                  <option>Executive Coaching</option>
-                  <option>Strategy Session</option>
-                  <option>Personal Training</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="CANCELLED">Cancelled</option>
                 </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[13px] font-semibold text-[#0F172A]">Date & Time</label>
-                  <input
-                    type="text"
-                    value={newBookingData.dateTime}
-                    onChange={(e) => setNewBookingData({ ...newBookingData, dateTime: e.target.value })}
-                    className="h-[40px] px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A]"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[13px] font-semibold text-[#0F172A]">Duration</label>
-                  <input
-                    type="text"
-                    value={newBookingData.duration}
-                    onChange={(e) => setNewBookingData({ ...newBookingData, duration: e.target.value })}
-                    className="h-[40px] px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[13px] font-semibold text-[#0F172A]">Amount</label>
-                  <input
-                    type="text"
-                    value={newBookingData.amount}
-                    onChange={(e) => setNewBookingData({ ...newBookingData, amount: e.target.value })}
-                    className="h-[40px] px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A]"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[13px] font-semibold text-[#0F172A]">Status</label>
-                  <select
-                    value={newBookingData.status}
-                    onChange={(e) => setNewBookingData({ ...newBookingData, status: e.target.value as BookingRecord['status'] })}
-                    className="h-[40px] px-3 bg-white border border-[#E2E8F0] rounded-[8px] text-[13px] text-[#0F172A]"
-                  >
-                    <option value="Confirmed">Confirmed</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F1F5F9] mt-2">
@@ -791,9 +645,10 @@ export default function BookingsPage() {
                 </button>
                 <button
                   type="submit"
+                  disabled={saveBooking.isPending}
                   className="px-4 py-2 bg-[#4F46E5] text-white rounded-[8px] text-[13px] font-semibold hover:bg-[#4338CA] cursor-pointer"
                 >
-                  {editingBookingId ? 'Save Changes' : 'Save Booking'}
+                  {saveBooking.isPending ? 'Saving…' : editingBookingId ? 'Save Changes' : 'Save Booking'}
                 </button>
               </div>
             </form>

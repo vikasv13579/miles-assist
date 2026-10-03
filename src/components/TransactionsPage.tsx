@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store/store';
@@ -12,191 +13,83 @@ import {
   SlidersHorizontal,
   ArrowDownUp
 } from 'lucide-react';
-import { fetchUsers, fetchTransactions, ApiUser, ApiCart } from '@/lib/api';
+import { fetchTransactionsPage, fetchUsers, type TransactionStatus } from '@/lib/api';
 import { SkeletonRows } from '@/components/Skeleton';
 
 interface TransactionRecord {
   id: string;
-  rawId: number;
+  rawId: string;
+  reference: string;
   userName: string;
   avatar: string;
-  type: 'Payment' | 'Refund' | 'Transfer';
-  amount: string;
-  isNegative?: boolean;
-  status: 'Completed' | 'Pending' | 'Failed' | 'Refunded';
+  amount: number;
+  status: string;
   dateTime: string;
 }
 
-const PAGE_SIZE = 8;
+const DEFAULT_PAGE_SIZE = 8;
+const PAGE_SIZE_OPTIONS = [5, 8, 10, 20, 50];
 
-const defaultTransactions: TransactionRecord[] = [
-  {
-    id: '#TXN-1082',
-    rawId: 1082,
-    userName: 'Albert Flores',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-    type: 'Payment',
-    amount: '$150.00',
-    status: 'Completed',
-    dateTime: 'Oct 1, 2024 14:32',
-  },
-  {
-    id: '#TXN-1081',
-    rawId: 1081,
-    userName: 'Jenny Wilson',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-    type: 'Payment',
-    amount: '$2,350.00',
-    status: 'Pending',
-    dateTime: 'Sep 30, 2024 09:12',
-  },
-  {
-    id: '#TXN-1080',
-    rawId: 1080,
-    userName: 'Kathryn Murphy',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    type: 'Refund',
-    amount: '-$420.00',
-    isNegative: true,
-    status: 'Refunded',
-    dateTime: 'Sep 29, 2024 16:45',
-  },
-  {
-    id: '#TXN-1079',
-    rawId: 1079,
-    userName: 'Guy Hawkins',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80',
-    type: 'Payment',
-    amount: '$85.00',
-    status: 'Failed',
-    dateTime: 'Sep 28, 2024 11:20',
-  },
-  {
-    id: '#TXN-1078',
-    rawId: 1078,
-    userName: 'Esther Howard',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
-    type: 'Transfer',
-    amount: '$1,200.00',
-    status: 'Completed',
-    dateTime: 'Sep 27, 2024 08:30',
-  },
-  {
-    id: '#TXN-1077',
-    rawId: 1077,
-    userName: 'Cody Fisher',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    type: 'Payment',
-    amount: '$340.00',
-    status: 'Pending',
-    dateTime: 'Sep 26, 2024 13:10',
-  },
-  {
-    id: '#TXN-1076',
-    rawId: 1076,
-    userName: 'Jane Cooper',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
-    type: 'Payment',
-    amount: '$500.00',
-    status: 'Completed',
-    dateTime: 'Sep 25, 2024 15:24',
-  },
-  {
-    id: '#TXN-1075',
-    rawId: 1075,
-    userName: 'Wade Warren',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-    type: 'Refund',
-    amount: '-$95.00',
-    isNegative: true,
-    status: 'Completed',
-    dateTime: 'Sep 25, 2024 10:15',
-  },
-];
+const formatStatus = (status: string) =>
+  status.charAt(0) + status.slice(1).toLowerCase();
 
-import TransactionDetailPage from './TransactionDetailPage';
+const formatAmount = (amount: number) =>
+  amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
 export default function TransactionsPage() {
+  const router = useRouter();
   const globalSearchQuery = useSelector((state: RootState) => state.ui.searchQuery);
   const [localSearch, setLocalSearch] = useState('');
   const [pagination, setPagination] = useState({ filterKey: '', page: 1 });
-  const [typeFilter, setTypeFilter] = useState('All');
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [typeFilter, setTypeFilter] = useState<TransactionStatus | 'All'>('All');
   const [amountFilter, setAmountFilter] = useState('All');
-  const [selectedTx, setSelectedTx] = useState<TransactionRecord | null>(null);
+  const searchQuery = localSearch || globalSearchQuery;
+  const filterKey = `${searchQuery}|${typeFilter}|${amountFilter}`;
+  const currentPage = pagination.filterKey === filterKey ? pagination.page : 1;
+  const setCurrentPage = (page: number) => setPagination({ filterKey, page });
 
   const { data: users } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsers,
   });
 
-  const { data: carts, isLoading, isError, refetch } = useQuery({
-    queryKey: ['carts'],
-    queryFn: fetchTransactions,
+  const { data: transactionsPage, isLoading, isError, refetch } = useQuery({
+    queryKey: ['transactions-page', currentPage, pageSize, searchQuery, typeFilter, amountFilter],
+    queryFn: () => fetchTransactionsPage({
+      page: currentPage,
+      limit: pageSize,
+      search: searchQuery.trim() || undefined,
+      status: typeFilter === 'All' ? undefined : typeFilter,
+      minAmount: amountFilter === 'high' ? 500 : undefined,
+      maxAmount: amountFilter === 'low' ? 100 : undefined,
+    }),
   });
 
-  // Map API carts to TransactionRecord schema or fallback to default Figma dataset
-  const transactionsList: TransactionRecord[] = carts && carts.length > 0
-    ? carts.map((cart: ApiCart, idx: number) => {
-        const user: ApiUser | undefined = users && users[idx % users.length];
-        const types: ('Payment' | 'Refund' | 'Transfer')[] = ['Payment', 'Payment', 'Refund', 'Payment', 'Transfer', 'Payment', 'Payment', 'Refund'];
-        const statuses: ('Completed' | 'Pending' | 'Failed' | 'Refunded')[] = ['Completed', 'Pending', 'Refunded', 'Failed', 'Completed', 'Pending', 'Completed', 'Completed'];
-        const dateTimes = [
-          'Oct 1, 2024 14:32',
-          'Sep 30, 2024 09:12',
-          'Sep 29, 2024 16:45',
-          'Sep 28, 2024 11:20',
-          'Sep 27, 2024 08:30',
-          'Sep 26, 2024 13:10',
-          'Sep 25, 2024 15:24',
-          'Sep 25, 2024 10:15',
-        ];
-        const isNeg = types[idx % types.length] === 'Refund';
-        const formattedAmount = `${isNeg ? '-' : ''}$${cart.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-        return {
-          id: `#TXN-${1080 + cart.id}`,
-          rawId: cart.id,
-          userName: user ? `${user.firstName} ${user.lastName}` : defaultTransactions[idx % defaultTransactions.length].userName,
-          avatar: user?.image || defaultTransactions[idx % defaultTransactions.length].avatar,
-          type: types[idx % types.length],
-          amount: formattedAmount,
-          isNegative: isNeg,
-          status: statuses[idx % statuses.length],
-          dateTime: dateTimes[idx % dateTimes.length],
-        };
-      })
-    : defaultTransactions;
-
-  const searchQuery = localSearch || globalSearchQuery;
-  const filterKey = `${searchQuery}|${typeFilter}|${amountFilter}`;
-  const currentPage = pagination.filterKey === filterKey ? pagination.page : 1;
-  const setCurrentPage = (page: number) => setPagination({ filterKey, page });
-
-  // Filter transactions based on search query and type dropdown
-  const filteredTransactions = transactionsList.filter((tx) => {
-    const matchesSearch = !searchQuery.trim() || (
-      tx.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.amount.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.status.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    const matchesType = typeFilter === 'All' || tx.type === typeFilter;
-    const amount = Number(tx.amount.replace(/[^\d.-]/g, ''));
-    const matchesAmount = amountFilter === 'All' ||
-      (amountFilter === 'high' && amount > 500) ||
-      (amountFilter === 'low' && amount < 100);
-    return matchesSearch && matchesType && matchesAmount;
+  const transactionsList: TransactionRecord[] = (transactionsPage?.data ?? []).map((transaction) => {
+    const user = users?.find((candidate) => candidate.id === transaction.userId);
+    return {
+      id: transaction.id,
+      rawId: transaction.id,
+      reference: transaction.reference,
+      userName: transaction.user?.name ?? user?.name ?? transaction.userId,
+      avatar: user?.image ?? '',
+      amount: transaction.amount,
+      status: transaction.status,
+      dateTime: new Date(transaction.createdAt).toLocaleString(),
+    };
   });
-  const pageCount = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE));
-  const pageStart = (currentPage - 1) * PAGE_SIZE;
-  const pageTransactions = filteredTransactions.slice(pageStart, pageStart + PAGE_SIZE);
-  const totalVolume = transactionsList.reduce((total, transaction) => total + Math.abs(Number(transaction.amount.replace(/[^\d.-]/g, ''))), 0);
-  const averageTransaction = transactionsList.length ? totalVolume / transactionsList.length : 0;
-  const productCount = carts?.reduce((total, cart) => total + cart.totalProducts, 0) ?? 0;
+
+  const filteredTransactions = transactionsList;
+  const pageCount = Math.max(1, transactionsPage?.meta.totalPages ?? 1);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageTransactions = transactionsList;
+  const summary = transactionsPage?.meta?.summary;
+  const totalTransactions = transactionsPage?.meta.total ?? 0;
 
   const handleExportCSV = () => {
-    const headers = ['Transaction ID', 'Customer Name', 'Type', 'Amount', 'Status', 'Date & Time'];
-    const rows = filteredTransactions.map(tx => [tx.id, tx.userName, tx.type, tx.amount, tx.status, tx.dateTime]);
+    const headers = ['Transaction ID', 'Reference', 'Customer Name', 'Amount', 'Status', 'Date & Time'];
+    const rows = filteredTransactions.map(tx => [tx.id, tx.reference, tx.userName, String(tx.amount), tx.status, tx.dateTime]);
     const csvContent = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -206,15 +99,6 @@ export default function TransactionsPage() {
     a.click();
   };
 
-  if (selectedTx) {
-    return (
-      <TransactionDetailPage 
-        transactionId={selectedTx.id} 
-        onBack={() => setSelectedTx(null)} 
-      />
-    );
-  }
-
   return (
     <div className="w-full flex flex-col gap-[16px] lg:gap-[24px] mx-auto font-sans">
       {/* API Error State with Retry Button Controls */}
@@ -223,7 +107,7 @@ export default function TransactionsPage() {
           <div className="flex items-center gap-2.5">
             <AlertTriangle className="w-5 h-5 text-[#EF4444] shrink-0" />
             <span className="font-medium">
-              API Error: Failed to retrieve live financial transactions from API. Displaying cached records.
+              API Error: Could not retrieve financial transactions from the backend.
             </span>
           </div>
           <button
@@ -294,13 +178,15 @@ export default function TransactionsPage() {
 
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={(e) => setTypeFilter(e.target.value as TransactionStatus | 'All')}
             className="w-[138px] h-[32px] px-[12px] bg-white border border-[#E2E8F0] rounded-[8px] text-[13px] leading-[16px] font-normal text-[#475569] focus:outline-none cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_12px_center]"
           >
-            <option value="All">Type: All Types</option>
-            <option value="Payment">Type: Payment</option>
-            <option value="Refund">Type: Refund</option>
-            <option value="Transfer">Type: Transfer</option>
+            <option value="All">Status: All</option>
+            <option value="PENDING">Status: Pending</option>
+            <option value="SUCCESS">Status: Success</option>
+            <option value="FAILED">Status: Failed</option>
+            <option value="REFUNDED">Status: Refunded</option>
+            <option value="CANCELLED">Status: Cancelled</option>
           </select>
 
           <select
@@ -322,7 +208,7 @@ export default function TransactionsPage() {
           <span className="hidden lg:inline text-[13px] leading-[16px] font-normal text-[#64748B]">Total Transactions</span>
           <span className="lg:hidden text-[11px] leading-[13px] font-normal text-[#64748B]">Total Txns</span>
           <span className="text-[16px] leading-[19px] lg:text-[20px] lg:leading-[24px] font-bold text-[#0F172A]">
-            {transactionsList.length.toLocaleString()}
+            {totalTransactions.toLocaleString()}
           </span>
         </div>
 
@@ -330,7 +216,9 @@ export default function TransactionsPage() {
         <div className="w-full lg:w-[272px] h-[60px] lg:h-[80px] bg-white border border-[#E2E8F0] rounded-[8px] p-[12px] lg:p-[16px] flex flex-col gap-[4px] lg:gap-[8px]">
           <span className="text-[11px] leading-[13px] lg:text-[13px] lg:leading-[16px] font-normal text-[#64748B]">Total Volume</span>
           <span className="text-[16px] leading-[19px] lg:text-[20px] lg:leading-[24px] font-bold text-[#0F172A]">
-            {totalVolume.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
+            {summary
+              ? summary.totalVolume.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+              : '—'}
           </span>
         </div>
 
@@ -339,7 +227,9 @@ export default function TransactionsPage() {
           <span className="hidden lg:inline text-[13px] leading-[16px] font-normal text-[#64748B]">Avg. Transaction</span>
           <span className="lg:hidden text-[11px] leading-[13px] font-normal text-[#64748B]">Avg. Amount</span>
           <span className="text-[16px] leading-[19px] lg:text-[20px] lg:leading-[24px] font-bold text-[#0F172A]">
-            {averageTransaction.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {summary
+              ? summary.averageTransaction.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
+              : '—'}
           </span>
         </div>
 
@@ -350,7 +240,7 @@ export default function TransactionsPage() {
               Success Rate
             </span>
             <span className="text-[16px] leading-[19px] lg:text-[20px] lg:leading-[24px] font-bold text-[#065F46] lg:text-[#10B981]">
-              96.8%
+              {summary ? `${summary.successRate.toFixed(1)}%` : '—'}
             </span>
           </div>
           {/* Mock visual chart lines (Desktop Only) */}
@@ -387,12 +277,12 @@ export default function TransactionsPage() {
         ) : (
           <>
             {/* Desktop Table Layout */}
-            <div className="hidden lg:flex flex-col w-[1096px] overflow-x-auto min-w-[900px]">
+            <div className="hidden lg:flex flex-col w-[1096px] h-[423px] min-h-0 overflow-x-auto overflow-y-hidden">
               {/* Header */}
               <div className="w-[1096px] h-[39px] bg-[#F8FAFC] rounded-[6px] p-[12px] flex items-center gap-[16px]">
                 <span className="w-[110px] text-[12px] leading-[15px] font-semibold text-[#64748B]">TRANSACTION ID</span>
                 <span className="w-[200px] text-[12px] leading-[15px] font-semibold text-[#64748B]">USER</span>
-                <span className="w-[100px] text-[12px] leading-[15px] font-semibold text-[#64748B]">TYPE</span>
+                <span className="w-[100px] text-[12px] leading-[15px] font-semibold text-[#64748B]">REFERENCE</span>
                 <span className="w-[110px] text-[12px] leading-[15px] font-semibold text-[#64748B]">AMOUNT</span>
                 <span className="w-[120px] text-[12px] leading-[15px] font-semibold text-[#64748B]">STATUS</span>
                 <span className="w-[160px] text-[12px] leading-[15px] font-semibold text-[#64748B]">DATE & TIME</span>
@@ -400,54 +290,49 @@ export default function TransactionsPage() {
               </div>
 
               {/* Rows */}
+              <div className="w-full min-h-0 flex-1 overflow-y-auto overflow-x-auto">
               {pageTransactions.map((tx) => (
                 <div key={tx.id} className="w-[1096px] h-[48px] p-[12px] border-b border-[#E2E8F0] flex items-center gap-[16px] hover:bg-[#F8FAFC]">
                   <span className="w-[110px] text-[13px] leading-[16px] font-semibold text-[#0F172A]">{tx.id}</span>
                   <div className="w-[200px] h-[24px] flex items-center gap-[8px]">
-                    <img
+                    {tx.avatar && <img
                       src={tx.avatar}
                       alt={tx.userName}
                       className="w-[24px] h-[24px] rounded-[12px] object-cover shrink-0"
-                    />
+                    />}
                     <span className="text-[13px] leading-[16px] font-medium text-[#0F172A] truncate">
                       {tx.userName}
                     </span>
                   </div>
                   <div className="w-[100px] h-[17px] flex items-center">
                     <span
-                      className={`h-[17px] flex items-center px-[8px] py-[2px] rounded-[4px] text-[11px] leading-[13px] font-semibold ${
-                        tx.type === 'Payment'
-                          ? 'bg-[#DBEAFE] text-[#1E40AF]'
-                          : tx.type === 'Refund'
-                          ? 'bg-[#FEE2E2] text-[#991B1B]'
-                          : 'bg-[#DBEAFE] text-[#1E40AF]' // Transfer maps to blue visually in Figma
-                      }`}
+                      className="h-[17px] flex items-center px-[8px] py-[2px] rounded-[4px] text-[11px] leading-[13px] font-semibold bg-[#DBEAFE] text-[#1E40AF]"
                     >
-                      {tx.type}
+                      {tx.reference}
                     </span>
                   </div>
-                  <span className={`w-[110px] text-[13px] leading-[16px] font-semibold ${tx.isNegative ? 'text-[#EF4444]' : 'text-[#0F172A]'}`}>
-                    {tx.amount}
+                  <span className="w-[110px] text-[13px] leading-[16px] font-semibold text-[#0F172A]">
+                    {formatAmount(tx.amount)}
                   </span>
                   <div className="w-[120px] h-[21px] flex items-center">
                     <span
                       className={`h-[21px] flex items-center px-[8px] py-[4px] rounded-[12px] text-[11px] leading-[13px] font-semibold ${
-                        tx.status === 'Completed'
+                        tx.status === 'SUCCESS'
                           ? 'bg-[#D1FAE5] text-[#065F46]'
-                          : tx.status === 'Pending'
+                          : tx.status === 'PENDING'
                           ? 'bg-[#FEF3C7] text-[#92400E]'
-                          : tx.status === 'Refunded'
+                          : tx.status === 'REFUNDED'
                           ? 'bg-[#F8FAFC] text-[#475569]'
-                          : 'bg-[#FEE2E2] text-[#991B1B]' // Failed
+                          : 'bg-[#FEE2E2] text-[#991B1B]'
                       }`}
                     >
-                      {tx.status}
+                      {formatStatus(tx.status)}
                     </span>
                   </div>
                   <span className="w-[160px] text-[13px] leading-[16px] font-normal text-[#475569]">{tx.dateTime}</span>
                   <div className="w-[60px] h-[16px] flex justify-end items-center">
                     <button 
-                      onClick={() => setSelectedTx(tx)}
+                      onClick={() => router.push(`/transaction-detail?id=${encodeURIComponent(tx.rawId)}`)}
                       className="w-[16px] h-[16px] text-[#475569] hover:text-[#0F172A] cursor-pointer"
                       title="View detail"
                     >
@@ -456,6 +341,7 @@ export default function TransactionsPage() {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
 
             {/* Mobile Card Layout */}
@@ -467,16 +353,16 @@ export default function TransactionsPage() {
                     <span className="text-[13px] leading-[16px] font-bold text-[#0F172A]">{tx.id}</span>
                     <span
                       className={`h-[19px] flex items-center px-[8px] py-[3px] rounded-[12px] text-[11px] leading-[13px] font-semibold ${
-                        tx.status === 'Completed'
+                        tx.status === 'SUCCESS'
                           ? 'bg-[#D1FAE5] text-[#065F46]'
-                          : tx.status === 'Pending'
+                          : tx.status === 'PENDING'
                           ? 'bg-[#FEF3C7] text-[#92400E]'
-                          : tx.status === 'Refunded'
+                          : tx.status === 'REFUNDED'
                           ? 'bg-[#F8FAFC] text-[#475569]'
-                          : 'bg-[#FEE2E2] text-[#991B1B]' // Failed
+                          : 'bg-[#FEE2E2] text-[#991B1B]'
                       }`}
                     >
-                      {tx.status}
+                      {formatStatus(tx.status)}
                     </span>
                   </div>
 
@@ -487,11 +373,11 @@ export default function TransactionsPage() {
                   <div className="w-full h-[37px] flex justify-between items-center">
                     {/* Left: User */}
                     <div className="h-[24px] flex items-center gap-[8px]">
-                      <img
+                      {tx.avatar && <img
                         src={tx.avatar}
                         alt={tx.userName}
                         className="w-[24px] h-[24px] rounded-[12px] object-cover shrink-0"
-                      />
+                      />}
                       <span className="w-[80px] text-[13px] leading-[16px] font-medium text-[#475569] truncate">
                         {tx.userName}
                       </span>
@@ -499,19 +385,11 @@ export default function TransactionsPage() {
 
                     {/* Right: Amount & Type */}
                     <div className="h-[37px] flex flex-col items-end gap-[2px]">
-                      <span className={`text-[13px] leading-[16px] font-bold ${tx.isNegative ? 'text-[#991B1B]' : 'text-[#0F172A]'}`}>
-                        {tx.amount}
+                      <span className="text-[13px] leading-[16px] font-bold text-[#0F172A]">
+                        {formatAmount(tx.amount)}
                       </span>
-                      <span
-                        className={`h-[19px] flex items-center px-[8px] py-[3px] rounded-[12px] text-[11px] leading-[13px] font-semibold ${
-                          tx.type === 'Payment'
-                            ? 'bg-[#DBEAFE] text-[#1E40AF]'
-                            : tx.type === 'Refund'
-                            ? 'bg-[#DBEAFE] text-[#1E40AF]' // In mobile figma CSS for Refund it uses text-[#1E40AF] wait no, looking closer "Payment" is blue.
-                            : 'bg-[#DBEAFE] text-[#1E40AF]'
-                        }`}
-                      >
-                        {tx.type}
+                      <span className="h-[19px] flex items-center px-[8px] py-[3px] rounded-[12px] text-[11px] leading-[13px] font-semibold bg-[#DBEAFE] text-[#1E40AF]">
+                        {tx.reference}
                       </span>
                     </div>
                   </div>
@@ -522,7 +400,7 @@ export default function TransactionsPage() {
                       {tx.dateTime}
                     </span>
                     <button 
-                      onClick={() => setSelectedTx(tx)}
+                      onClick={() => router.push(`/transaction-detail?id=${encodeURIComponent(tx.rawId)}`)}
                       className="w-[20px] h-[20px] bg-[#F8FAFC] rounded-[4px] flex justify-center items-center cursor-pointer"
                       title="View detail"
                     >
@@ -538,20 +416,37 @@ export default function TransactionsPage() {
         {/* Table Footer / Pagination */}
         <div className="w-full mt-auto flex flex-col sm:flex-row items-center justify-between text-[12px] gap-[12px]">
           <span className="text-[#64748B]">
-            Showing <span className="font-semibold text-[#0F172A]">{filteredTransactions.length ? `${pageStart + 1}-${Math.min(pageStart + PAGE_SIZE, filteredTransactions.length)}` : '0'}</span> of{' '}
-            <span className="font-semibold text-[#0F172A]">{filteredTransactions.length}</span> results
+            Showing <span className="font-semibold text-[#0F172A]">{filteredTransactions.length ? `${pageStart + 1}-${pageStart + filteredTransactions.length}` : '0'}</span> of{' '}
+            <span className="font-semibold text-[#0F172A]">{totalTransactions}</span> results
           </span>
           <div className="flex items-center gap-[8px]">
+            <label className="flex items-center gap-2 text-[#64748B]">
+              Rows per page
+              <select
+                aria-label="Rows per page"
+                value={pageSize}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setCurrentPage(1);
+                }}
+                className="rounded-[6px] border border-[#E2E8F0] bg-white px-2 py-1 text-[#0F172A]"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+            </label>
             <button 
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
+              disabled={currentPage === 1 || isLoading}
               className="px-[12px] py-[4px] bg-white border border-[#E2E8F0] rounded-[6px] text-[#64748B] hover:bg-[#F8FAFC] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
+            <span className="text-[#64748B]">Page {currentPage} of {pageCount}</span>
             <button 
               onClick={() => setCurrentPage(Math.min(pageCount, currentPage + 1))}
-              disabled={currentPage >= pageCount}
+              disabled={currentPage >= pageCount || isLoading}
               className="px-[12px] py-[4px] bg-white border border-[#E2E8F0] rounded-[6px] text-[#64748B] hover:bg-[#F8FAFC] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Next
